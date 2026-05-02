@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>测试 GameScene</title>
+</head>
+<body>
+    <h1 id="status">加载中...</h1>
+    <pre id="output" style="font-size:12px; max-height:400px; overflow:auto;"></pre>
+    <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script type="module">
+        const output = document.getElementById('output');
+        const status = document.getElementById('status');
+
+        function log(msg) {
+            output.textContent += msg + '\n';
+        }
+
+        try {
+            // Dynamically import all modules
+            log('Loading config/game.js...');
+            const gameModule = await import('./src/config/game.js');
+            log('OK: ' + JSON.stringify(Object.keys(gameModule)));
+
+            log('Loading scenes/BootScene.js...');
+            const bootModule = await import('./src/scenes/BootScene.js');
+            log('OK: BootScene');
+
+            log('Loading scenes/MenuScene.js...');
+            const menuModule = await import('./src/scenes/MenuScene.js');
+            log('OK: MenuScene');
+
+            log('Loading scenes/LoadScene.js...');
+            const loadModule = await import('./src/scenes/LoadScene.js');
+            log('OK: LoadScene');
+
+            log('Loading config/weapons.js...');
+            const weaponsModule = await import('./src/config/weapons.js');
+            log('OK: weapons');
+
+            log('Loading config/grenades.js...');
+            const grenadesModule = await import('./src/config/grenades.js');
+            log('OK: grenades');
+
+            log('Loading config/medicals.js...');
+            const medicalsModule = await import('./src/config/medicals.js');
+            log('OK: medicals');
+
+            log('Loading config/controls.js...');
+            const controlsModule = await import('./src/config/controls.js');
+            log('OK: controls');
+
+            log('Loading entities/Player.js...');
+            const playerModule = await import('./src/entities/Player.js');
+            log('OK: Player');
+
+            log('Loading weapons/Weapon.js...');
+            const weaponModule = await import('./src/weapons/Weapon.js');
+            log('OK: Weapon');
+
+            log('Loading weapons/Bullet.js...');
+            const bulletModule = await import('./src/weapons/Bullet.js');
+            log('OK: Bullet');
+
+            log('Loading items/Grenade.js...');
+            const grenadeModule = await import('./src/items/Grenade.js');
+            log('OK: Grenade');
+
+            log('Loading items/Medkit.js...');
+            const medkitModule = await import('./src/items/Medkit.js');
+            log('OK: Medkit');
+
+            log('Loading effects/HitEffects.js...');
+            const hitEffectsModule = await import('./src/effects/HitEffects.js');
+            log('OK: HitEffects');
+
+            log('Loading maps/GarageMap.js...');
+            const garageMapModule = await import('./src/maps/GarageMap.js');
+            log('OK: GarageMap');
+
+            log('Loading managers/RoundManager.js...');
+            const roundManagerModule = await import('./src/managers/RoundManager.js');
+            log('OK: RoundManager');
+
+            log('Loading ui/HUDManager.js...');
+            const hudModule = await import('./src/ui/HUDManager.js');
+            log('OK: HUDManager');
+
+            log('Loading scenes/EndScene.js...');
+            const endModule = await import('./src/scenes/EndScene.js');
+            log('OK: EndScene');
+
+            log('Loading scenes/GameScene.js...');
+            const gameSceneModule = await import('./src/scenes/GameScene.js');
+            log('OK: GameScene');
+
+            log('\nAll modules loaded successfully!');
+
+            status.textContent = 'SUCCESS - All modules loaded!';
+
+        } catch(e) {
+            status.textContent = 'ERROR: ' + e.message;
+            log('\nERROR: ' + e.message);
+            log(e.stack);
+        }
+    </script>
+</body>
+</html>

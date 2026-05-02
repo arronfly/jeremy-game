@@ -1,3 +1,5 @@
+const Phaser = window.Phaser;
+
 export default class LoadScene extends Phaser.Scene {
     constructor() {
         super({ key: 'LoadScene' });
@@ -26,29 +28,31 @@ export default class LoadScene extends Phaser.Scene {
         });
 
         this.load.on('complete', () => {
-            // Show "loading complete" briefly before starting
             this.add.text(width/2, height/2 + 60, '加载完成！', {
                 fontSize: '24px',
                 color: '#27AE60'
             }).setOrigin(0.5);
 
-            // Delay 1.5 seconds so user can see the loading screen
             this.time.delayedCall(1500, () => {
                 this.scene.start('GameScene');
             });
         });
 
-        // Start loading
+        // Generate all textures
         this.generateTextures();
-        this.load.start();
 
-        // Even though nothing is in the queue, fire progress to show loading bar
+        // Show loading bar after a small delay
         this.time.delayedCall(100, () => {
             progress.clear();
             progress.fillStyle(0x27AE60, 1);
             progress.fillRect(barX, barY, barWidth, barHeight);
             progress.lineStyle(2, 0xffffff);
             progress.strokeRect(barX, barY, barWidth, barHeight);
+        });
+
+        // Since we don't use this.load, manually trigger complete
+        this.time.delayedCall(500, () => {
+            this.load.emit('complete');
         });
     }
 
@@ -73,10 +77,10 @@ export default class LoadScene extends Phaser.Scene {
         graphics.fillEllipse(24, 28, 16, 20);
 
         // Head
-        graphics.fillStyle(0xFFDBB4); // Skin color
+        graphics.fillStyle(0xFFDBB4);
         graphics.fillCircle(24, 12, 10);
         graphics.fillStyle(color, 0.8);
-        graphics.fillEllipse(24, 8, 12, 6); // Helmet top
+        graphics.fillEllipse(24, 8, 12, 6);
 
         // Arms
         graphics.lineStyle(4, color);
@@ -104,7 +108,6 @@ export default class LoadScene extends Phaser.Scene {
     }
 
     generateGrenadeTextures() {
-        // Smoke grenade - gray
         let graphics = this.make.graphics({ x: 0, y: 0 });
         graphics.fillStyle(0x888888);
         graphics.fillCircle(12, 12, 10);
@@ -113,7 +116,6 @@ export default class LoadScene extends Phaser.Scene {
         graphics.generateTexture('smoke_grenade', 24, 24);
         graphics.destroy();
 
-        // Flash grenade - white/yellow
         graphics = this.make.graphics({ x: 0, y: 0 });
         graphics.fillStyle(0xFFFF00);
         graphics.fillCircle(12, 12, 10);
@@ -122,7 +124,6 @@ export default class LoadScene extends Phaser.Scene {
         graphics.generateTexture('flash_grenade', 24, 24);
         graphics.destroy();
 
-        // Frag grenade - dark green
         graphics = this.make.graphics({ x: 0, y: 0 });
         graphics.fillStyle(0x2E8B57);
         graphics.fillCircle(12, 12, 10);
@@ -133,7 +134,6 @@ export default class LoadScene extends Phaser.Scene {
     }
 
     generateMedkitTextures() {
-        // First aid kit - red/white
         let graphics = this.make.graphics({ x: 0, y: 0 });
         graphics.fillStyle(0xFFFFFF);
         graphics.fillRect(4, 8, 16, 16);
@@ -142,7 +142,6 @@ export default class LoadScene extends Phaser.Scene {
         graphics.generateTexture('first_aid_kit', 24, 32);
         graphics.destroy();
 
-        // Bandage - white roll
         graphics = this.make.graphics({ x: 0, y: 0 });
         graphics.fillStyle(0xFFFFFF);
         graphics.fillEllipse(12, 12, 14, 10);
@@ -151,7 +150,6 @@ export default class LoadScene extends Phaser.Scene {
         graphics.generateTexture('bandage', 24, 24);
         graphics.destroy();
 
-        // Energy drink - blue can
         graphics = this.make.graphics({ x: 0, y: 0 });
         graphics.fillStyle(0x3498DB);
         graphics.fillRect(6, 4, 12, 20);

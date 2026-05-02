@@ -4,9 +4,11 @@ import { WEAPONS } from '../config/weapons.js';
 import { GRENADES } from '../config/grenades.js';
 import { MEDICALS } from '../config/medicals.js';
 import { Grenade } from '../items/Grenade.js';
-import { Medkit, EnergyDrinkEffect } from '../items/Medkit.js';
+import Medkit, { EnergyDrinkEffect } from '../items/Medkit.js';
 import { PLAYER_CONFIG } from '../config/controls.js';
 import { HitEffects } from '../effects/HitEffects.js';
+
+const Phaser = window.Phaser;
 
 export default class Player extends Phaser.GameObjects.Container {
     constructor(scene, x, y, team, hitEffects = null) {

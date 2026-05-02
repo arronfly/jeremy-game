@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Chain</title>
+</head>
+<body>
+    <h1 id="status">Loading...</h1>
+    <pre id="output" style="font-size:12px;"></pre>
+    <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script type="module">
+        const output = document.getElementById('output');
+
+        async function load(modules, label) {
+            output.textContent += `Loading ${label}...\n`;
+            try {
+                await Promise.all(modules.map(m => import(m)));
+                output.textContent += `OK: ${label}\n`;
+                return true;
+            } catch(e) {
+                output.textContent += `FAIL: ${label} - ${e.message}\n`;
+                return false;
+            }
+        }
+
+        let ok = true;
+        ok = await load(['./src/config/game.js'], 'game') && ok;
+        ok = await load(['./src/config/weapons.js'], 'weapons') && ok;
+        ok = await load(['./src/config/grenades.js'], 'grenades') && ok;
+        ok = await load(['./src/config/medicals.js'], 'medicals') && ok;
+        ok = await load(['./src/config/controls.js'], 'controls') && ok;
+        ok = await load(['./src/weapons/Weapon.js'], 'Weapon') && ok;
+        ok = await load(['./src/scenes/BootScene.js'], 'BootScene') && ok;
+        ok = await load(['./src/effects/HitEffects.js'], 'HitEffects') && ok;
+        ok = await load(['./src/items/Grenade.js'], 'Grenade') && ok;
+        ok = await load(['./src/items/Medkit.js'], 'Medkit') && ok;
+
+        if (ok) {
+            output.textContent += '\nLoading Player...\n';
+            try {
+                await import('./src/entities/Player.js');
+                output.textContent += 'OK: Player\n';
+                document.getElementById('status').textContent = 'SUCCESS';
+            } catch(e) {
+                output.textContent += '\nERROR: ' + e.message;
+                document.getElementById('status').textContent = 'ERROR';
+            }
+        }
+    </script>
+</body>
+</html>

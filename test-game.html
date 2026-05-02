@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Game</title>
+</head>
+<body>
+    <h1 id="status">Initializing...</h1>
+    <pre id="output" style="font-size:12px; max-height:400px; overflow:auto;"></pre>
+    <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script type="module">
+        const output = document.getElementById('output');
+        const status = document.getElementById('status');
+
+        function log(msg) {
+            output.textContent += msg + '\n';
+        }
+
+        log('Phaser version: ' + Phaser.VERSION);
+        log('Phaser ready: ' + (typeof Phaser !== 'undefined'));
+
+        try {
+            log('Loading modules...');
+
+            // Import all needed modules
+            const [
+                gameConfig,
+                bootScene,
+                menuScene,
+                loadScene,
+                gameScene,
+                endScene
+            ] = await Promise.all([
+                import('./src/config/game.js'),
+                import('./src/scenes/BootScene.js'),
+                import('./src/scenes/MenuScene.js'),
+                import('./src/scenes/LoadScene.js'),
+                import('./src/scenes/GameScene.js'),
+                import('./src/scenes/EndScene.js')
+            ]);
+
+            log('All modules loaded!');
+
+            log('Starting game with scenes: BootScene -> MenuScene -> LoadScene -> GameScene');
+
+            const config = {
+                ...gameConfig.GAME_CONFIG,
+                scene: [bootScene.default, menuScene.default, loadScene.default, gameScene.default, endScene.default]
+            };
+
+            log('Config: ' + JSON.stringify({...config, scene: ['Boot', 'Menu', 'Load', 'Game', 'End']}));
+
+            const game = new Phaser.Game(config);
+            window.game = game;
+
+            game.scene.on('ready', () => {
+                log('Game ready event fired!');
+            });
+
+            game.events.on('ready', () => {
+                log('Game events ready!');
+            });
+
+            status.textContent = 'SUCCESS - Game started!';
+            log('Game created successfully!');
+
+        } catch(e) {
+            status.textContent = 'ERROR: ' + e.message;
+            log('ERROR: ' + e.message);
+            log(e.stack);
+        }
+    </script>
+</body>
+</html>

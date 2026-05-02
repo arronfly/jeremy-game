@@ -1,6 +1,8 @@
 import { GRENADES } from '../config/grenades.js';
 import { HitEffects } from '../effects/HitEffects.js';
 
+const Phaser = window.Phaser;
+
 export class Grenade {
     constructor(scene, type, owner) {
         this.scene = scene;
@@ -204,11 +206,11 @@ export class Grenade {
                 explosion.clear();
 
                 // Outer ring
-                explosion.fillStyle(0xFF6600, Math.max(0, 0.8 - explosionRadius / 100)));
+                explosion.fillStyle(0xFF6600, Math.max(0, 0.8 - explosionRadius / 100));
                 explosion.fillCircle(this.x, this.y, explosionRadius);
 
                 // Inner glow
-                explosion.fillStyle(0xFFFF00, Math.max(0, 0.5 - explosionRadius / 150)));
+                explosion.fillStyle(0xFFFF00, Math.max(0, 0.5 - explosionRadius / 150));
                 explosion.fillCircle(this.x, this.y, explosionRadius * 0.5);
 
                 if (explosionRadius >= radius) {

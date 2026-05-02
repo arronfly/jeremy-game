@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Test HitEffects only</title>
+</head>
+<body>
+    <h1 id="status">Loading...</h1>
+    <pre id="output" style="font-size:12px;"></pre>
+    <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script type="module">
+        try {
+            const mod = await import('./src/effects/HitEffects.js');
+            document.getElementById('status').textContent = 'SUCCESS';
+            document.getElementById('output').textContent = 'Loaded: ' + Object.keys(mod).join(', ');
+        } catch(e) {
+            document.getElementById('status').textContent = 'ERROR';
+            document.getElementById('output').textContent = e.message + '\n' + (e.stack || '').split('\n').slice(0, 5).join('\n');
+        }
+    </script>
+</body>
+</html>

@@ -9,6 +9,8 @@
  * - Spawn zones marked for each team
  */
 
+const Phaser = window.Phaser;
+
 export class GarageMap {
     constructor(scene) {
         this.scene = scene;

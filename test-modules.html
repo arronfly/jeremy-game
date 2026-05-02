@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>模块测试</title>
+</head>
+<body>
+    <h1 id="status">加载中...</h1>
+    <script type="module">
+        import('./test-module.js')
+            .then(m => {
+                document.getElementById('status').textContent = 'SUCCESS: ' + m.TEST_VALUE;
+            })
+            .catch(e => {
+                document.getElementById('status').textContent = 'ERROR: ' + e.message;
+            });
+    </script>
+</body>
+</html>

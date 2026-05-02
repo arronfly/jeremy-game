@@ -1,4 +1,5 @@
-import Phaser from 'phaser';
+// Use Phaser from global script tag
+const Phaser = window.Phaser;
 
 export default class Bullet extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, texture, damage, velocity, isEnemy = false) {

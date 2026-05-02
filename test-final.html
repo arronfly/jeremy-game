@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Final Test</title>
+</head>
+<body>
+    <div id="game-container"></div>
+    <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script type="module">
+        import('./src/main.js')
+            .then(() => console.log('main.js loaded'))
+            .catch(e => console.error('main.js ERROR:', e.message));
+    </script>
+</body>
+</html>

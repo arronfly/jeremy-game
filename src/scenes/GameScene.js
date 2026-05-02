@@ -7,6 +7,8 @@ import { GarageMap } from '../maps/GarageMap.js';
 import { RoundManager, RoundState } from '../managers/RoundManager.js';
 import { HUDManager } from '../ui/HUDManager.js';
 
+const Phaser = window.Phaser;
+
 export default class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });

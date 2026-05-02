@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>测试 - 无模块版</title>
+</head>
+<body>
+    <h1 id="status">加载中...</h1>
+    <pre id="output"></pre>
+    <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script>
+        document.getElementById('status').textContent = 'Phaser loaded: ' + typeof Phaser;
+        document.getElementById('output').textContent = 'Phaser version: ' + Phaser.VERSION;
+
+        try {
+            const config = {
+                type: Phaser.AUTO,
+                width: 800,
+                height: 600,
+                backgroundColor: '#2d2d44',
+                scene: {
+                    create: function() {
+                        document.getElementById('status').textContent = 'SUCCESS - Phaser works!';
+                        this.add.text(400, 300, 'SUCCESS - Phaser works!', {
+                            fontSize: '32px',
+                            color: '#00ff00'
+                        }).setOrigin(0.5);
+                    }
+                }
+            };
+            new Phaser.Game(config);
+        } catch(e) {
+            document.getElementById('status').textContent = 'ERROR: ' + e.message;
+            document.getElementById('output').textContent = e.stack;
+        }
+    </script>
+</body>
+</html>

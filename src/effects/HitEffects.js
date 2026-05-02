@@ -3,6 +3,8 @@
  * Uses Phaser particle emitters for performant effects
  */
 
+const Phaser = window.Phaser;
+
 export class HitEffects {
     constructor(scene) {
         this.scene = scene;

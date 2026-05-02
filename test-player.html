@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Player</title>
+</head>
+<body>
+    <h1 id="status">Loading...</h1>
+    <pre id="output" style="font-size:12px;"></pre>
+    <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script type="module">
+        const output = document.getElementById('output');
+        const status = document.getElementById('status');
+
+        try {
+            output.textContent += 'Loading Player...\n';
+            const playerModule = await import('./src/entities/Player.js');
+            output.textContent += 'Player OK\n';
+            status.textContent = 'SUCCESS';
+        } catch(e) {
+            output.textContent += '\nERROR: ' + e.message;
+            status.textContent = 'ERROR';
+        }
+    </script>
+</body>
+</html>

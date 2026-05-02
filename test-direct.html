@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Direct Test</title>
+    <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js"></script>
+</head>
+<body>
+    <div id="game-container"></div>
+    <script>
+        console.log('Phaser loaded:', typeof Phaser);
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game-container',
+            backgroundColor: '#2d2d44'
+        };
+
+        class TestScene extends Phaser.Scene {
+            create() {
+                this.add.text(400, 300, 'Direct Phaser Works!', {
+                    fontSize: '32px',
+                    color: '#00ff00'
+                }).setOrigin(0.5);
+                console.log('TestScene created successfully');
+            }
+        }
+
+        config.scene = [TestScene];
+        const game = new Phaser.Game(config);
+        window.game = game;
+        console.log('Game created successfully');
+    </script>
+</body>
+</html>
