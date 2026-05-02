@@ -3,55 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jeremy's Game - 歼灭团竞</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>歼灭团竞2</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #1a1a2e; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
+        #game-container { position: relative; }
+    </style>
 </head>
 <body>
-    <div id="game-container">
-        <canvas id="gameCanvas"></canvas>
-        <div id="ui">
-            <div id="score-board">
-                <div class="team-score red">
-                    <span class="team-name">红队</span>
-                    <span id="red-score">0</span>
-                </div>
-                <div id="timer">00:00</div>
-                <div class="team-score blue">
-                    <span class="team-name">蓝队</span>
-                    <span id="blue-score">0</span>
-                </div>
-            </div>
-            <div id="kill-feed"></div>
-            <div id="player-stats">
-                <div id="health-bar">
-                    <div id="health-fill"></div>
-                    <span id="health-text">100</span>
-                </div>
-                <div id="ammo">
-                    <span id="ammo-count">30</span> / <span id="ammo-reserve">90</span>
-                </div>
-                <div id="weapon-name">突击步枪</div>
-            </div>
-            <div id="game-over" class="hidden">
-                <h1 id="winner-text">红队胜利!</h1>
-                <p>最终比分: <span id="final-red">0</span> - <span id="final-blue">0</span></p>
-                <button id="restart-btn">再来一局</button>
-            </div>
-            <div id="start-screen">
-                <h1>Jeremy's Game</h1>
-                <h2>歼灭团竞</h2>
-                <p>红队 vs 蓝队</p>
-                <button id="start-btn">开始游戏</button>
-                <div id="controls-info">
-                    <p><strong>操作说明:</strong></p>
-                    <p>WASD - 移动 | 鼠标 - 瞄准 | 左键 - 射击 | R - 换枪</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    <script src="js/weapon.js"></script>
-    <script src="js/player.js"></script>
-    <script src="js/bot.js"></script>
-    <script src="js/game.js"></script>
+    <div id="game-container"></div>
+    <script type="module" src="src/main.js"></script>
 </body>
 </html>

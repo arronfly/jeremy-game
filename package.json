@@ -1,0 +1,12 @@
+{
+  "name": "jeremy-game-2",
+  "version": "1.0.0",
+  "description": "Peace Elite Style Team Elimination Game",
+  "scripts": {
+    "start": "npx http-server . -p 8080",
+    "test": "echo \"No tests configured\""
+  },
+  "dependencies": {
+    "phaser": "^3.60.0"
+  }
+}
