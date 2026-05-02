@@ -1,0 +1,48 @@
+# Unity Scene Setup Guide
+# Copy the hierarchy below into your Scene window
+
+## Scene Hierarchy (GameObjects to create):
+
+```
+--- GameObject: SceneSetup (Create empty, add SceneSetup.cs)
+    - Add reference: playerPrefab (drag from Project)
+    - Add reference: botPrefab (drag from Project)
+    - Add reference: roundManager (drag RoundManager from scene)
+    - Add reference: hudManager (drag HUDManager from scene)
+    - Set redSpawnPoints (click + to add 4 Vector2 entries):
+        - Element 0: (-5, 0)
+        - Element 1: (-3, 0)
+        - Element 2: (-4, 2)
+        - Element 3: (-4, -2)
+    - Set blueSpawnPoints (click + to add 4 Vector2 entries):
+        - Element 0: (5, 0)
+        - Element 1: (3, 0)
+        - Element 2: (4, 2)
+        - Element 3: (4, -2)
+
+--- GameObject: RoundManager (Create empty, add RoundManager.cs)
+    - Leave unconfigured, will be linked by SceneSetup
+
+--- GameObject: HUDManager (Create empty, add HUDManager.cs)
+    - Leave unconfigured, will be linked by SceneSetup
+
+--- GameObject: Main Camera
+    - Set to Orthographic projection
+    - Position: (0, 0, -10)
+    - Size: 5
+```
+
+## Prefabs Needed (create in Assets/Prefabs/):
+1. PlayerPrefab - Your player character prefab
+2. BotPrefab - Bot/AI character prefab
+
+## Scripts Needed (create in Assets/Scripts/):
+1. RoundManager.cs - Handles round logic
+2. HUDManager.cs - Handles heads-up display
+3. SceneSetup.cs - Already created at Assets/Scripts/SceneSetup.cs
+
+## After Setup:
+1. Select SceneSetup object in hierarchy
+2. Drag prefabs and manager references into inspector slots
+3. Set spawn point arrays with positions matching your level design
+4. Run scene - SetupScene() will spawn players/bots and configure camera
