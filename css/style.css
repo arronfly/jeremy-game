@@ -1,0 +1,245 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #1a1a2e;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    cursor: crosshair;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#gameCanvas {
+    background: #2d2d44;
+    border: 3px solid #444;
+    border-radius: 8px;
+}
+
+#ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+#score-board {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 30px;
+    border-radius: 8px;
+    border: 2px solid #555;
+}
+
+.team-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.team-name {
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.red .team-name { color: #ff6b6b; }
+.red #red-score { color: #ff6b6b; }
+
+.blue .team-name { color: #4ecdc4; }
+.blue #blue-score { color: #4ecdc4; }
+
+.team-score span:last-child {
+    font-size: 32px;
+    font-weight: bold;
+}
+
+#timer {
+    color: #fff;
+    font-size: 24px;
+    font-weight: bold;
+    min-width: 80px;
+    text-align: center;
+}
+
+#kill-feed {
+    position: absolute;
+    top: 100px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-width: 300px;
+}
+
+.kill-entry {
+    background: rgba(0, 0, 0, 0.6);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #fff;
+    animation: fadeIn 0.3s ease;
+    border-left: 3px solid;
+}
+
+.kill-entry.red-kill { border-left-color: #ff6b6b; }
+.kill-entry.blue-kill { border-left-color: #4ecdc4; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+#player-stats {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 15px 20px;
+    border-radius: 8px;
+    border: 2px solid #555;
+    min-width: 200px;
+}
+
+#health-bar {
+    position: relative;
+    height: 25px;
+    background: #333;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+#health-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff4444, #ff6b6b);
+    transition: width 0.2s ease;
+    width: 100%;
+}
+
+#health-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+#ammo {
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+#weapon-name {
+    color: #aaa;
+    font-size: 14px;
+}
+
+#game-over, #start-screen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    padding: 40px 60px;
+    border-radius: 12px;
+    border: 3px solid #555;
+    text-align: center;
+    pointer-events: auto;
+}
+
+#game-over h1, #start-screen h1 {
+    color: #fff;
+    font-size: 42px;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+#start-screen h2 {
+    color: #4ecdc4;
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+#game-over p, #start-screen p {
+    color: #ccc;
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+#start-screen p:nth-of-type(2) {
+    color: #888;
+    font-size: 14px;
+}
+
+#controls-info {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+}
+
+#controls-info p {
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+#controls-info p:last-child {
+    margin-bottom: 0;
+}
+
+button {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    color: #fff;
+    border: none;
+    padding: 15px 40px;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 20px rgba(78, 205, 196, 0.4);
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+.hidden {
+    display: none !important;
+}
+
+#winner-text.red-winner { color: #ff6b6b; }
+#winner-text.blue-winner { color: #4ecdc4; }
