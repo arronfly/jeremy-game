@@ -1,51 +1,101 @@
 using UnityEngine;
 
 /// <summary>
-/// 子弹脚本 - 测试用
+/// 子弹 - 支持多种武器
 /// </summary>
 public class Bullet : MonoBehaviour
 {
-    private Vector2 direction;
-    private float speed;
+    private Vector2 velocity;
     private int damage;
     private string ownerTag;
     private Rigidbody2D rb;
+    private bool initialized = false;
+    private float lifetime = 3f;
+    private float createdTime;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
     }
 
-    public void Initialize(Vector2 dir, float spd, int dmg, string tag)
+    /// <summary>
+    /// 初始化子弹
+    /// </summary>
+    public void Initialize(Vector2 velocity, int damage, string ownerTag)
     {
-        direction = dir.normalized;
-        speed = spd;
-        damage = dmg;
-        ownerTag = tag;
+        this.velocity = velocity;
+        this.damage = damage;
+        this.ownerTag = ownerTag;
+        this.createdTime = Time.time;
+        this.initialized = true;
 
-        rb.velocity = direction * speed;
+        rb.velocity = velocity;
+        rb.rotation = Mathf.Atan2(velocity.y, velocity.x) * Mathf.Rad2Deg;
+    }
 
-        // 3秒后自动销毁
-        Destroy(gameObject, 3f);
+    // 兼容旧版本
+    public void Initialize(Vector2 direction, float speed, int damage, string tag)
+    {
+        Initialize(direction * speed, damage, tag);
+    }
+
+    void Update()
+    {
+        if (!initialized) return;
+
+        // 生命周期结束
+        if (Time.time - createdTime > lifetime)
+        {
+            Destroy(gameObject);
+        }
     }
 
     void OnCollisionEnter2D(Collision2D collision)
     {
-        // 碰到其他物体就销毁
+        // 碰到任何物体都销毁
         Destroy(gameObject);
     }
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        // 如果碰到玩家（不是子弹主人的队伍）
-        if (other.CompareTag("Player") && !other.gameObject.CompareTag(ownerTag))
+        if (!initialized) return;
+
+        // 忽略碰撞的标签
+        if (other.CompareTag(ownerTag)) return;
+
+        // 检测玩家或Bot
+        PlayerHealth health = other.GetComponent<PlayerHealth>();
+        if (health != null)
         {
-            PlayerHealth health = other.GetComponent<PlayerHealth>();
-            if (health != null)
-            {
-                health.TakeDamage(damage);
-            }
-            Destroy(gameObject);
+            // 伤害判定
+            health.TakeDamage(damage);
+
+            // 击中效果
+            CreateHitEffect();
         }
+
+        Destroy(gameObject);
+    }
+
+    void CreateHitEffect()
+    {
+        // 创建击中粒子效果（可以用简单的几何图形代替）
+        GameObject effect = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        effect.transform.position = transform.position;
+        effect.transform.localScale = Vector3.one * 0.2f;
+        effect.GetComponent<Renderer>().material.color = Color.red;
+
+        // 0.2秒后销毁
+        Destroy(effect, 0.2f);
+    }
+
+    public int GetDamage()
+    {
+        return damage;
+    }
+
+    public string GetOwnerTag()
+    {
+        return ownerTag;
     }
 }
