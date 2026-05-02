@@ -1,8 +1,8 @@
 import Player from './Player.js';
 
 export default class Bot extends Player {
-    constructor(scene, x, y, team) {
-        super(scene, x, y, team);
+    constructor(scene, x, y, team, hitEffects = null) {
+        super(scene, x, y, team, hitEffects);
 
         this.isBot = true;
         this.state = 'idle'; // idle, patrol, chase, attack

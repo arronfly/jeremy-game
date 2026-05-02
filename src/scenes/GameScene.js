@@ -2,6 +2,8 @@ import Player from '../entities/Player.js';
 import Bot from '../entities/Bot.js';
 import { TEAM_CONFIG, RULES } from '../config/game.js';
 import { CONTROLS } from '../config/controls.js';
+import { HitEffects } from '../effects/HitEffects.js';
+import { GarageMap } from '../maps/GarageMap.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -17,16 +19,14 @@ export default class GameScene extends Phaser.Scene {
     create() {
         const { width, height } = this.sys.game.config;
 
-        // Background
-        this.add.rectangle(width/2, height/2, width, height, 0x2d2d44);
-
-        // Create map elements (simple placeholder)
-        this.createMapElements();
+        // Create the garage-style map
+        this.garageMap = new GarageMap(this);
+        this.garageMap.create();
 
         // Initialize controls
         this.setupControls();
 
-        // Spawn teams
+        // Spawn teams using map spawn positions
         this.spawnTeams();
 
         // Setup mouse input
@@ -34,6 +34,12 @@ export default class GameScene extends Phaser.Scene {
 
         // Display team info
         this.createHUD();
+
+        // Initialize particle effects
+        this.hitEffects = new HitEffects(this);
+
+        // Store collision objects reference for bullet collision detection
+        this.collisionObjects = this.garageMap.getCollisionObjects();
     }
 
     createMapElements() {
@@ -125,23 +131,24 @@ export default class GameScene extends Phaser.Scene {
     }
 
     spawnTeams() {
-        // Red team spawn at x=150
-        const redSpawnX = TEAM_CONFIG.red.spawnX;
-        const blueSpawnX = TEAM_CONFIG.blue.spawnX;
-        const centerY = 600;
+        // Get spawn positions from the map
+        const redSpawnPositions = this.garageMap.getSpawnPositions('red');
+        const blueSpawnPositions = this.garageMap.getSpawnPositions('blue');
 
         // Red team: 1 human player + 3 bots
-        // Human player
-        const humanPlayer = new Player(this, redSpawnX, centerY, 'red');
+        // Human player at first spawn position
+        const redHumanPos = redSpawnPositions[0];
+        const humanPlayer = new Player(this, redHumanPos.x, redHumanPos.y, 'red', this.hitEffects);
         this.players.push(humanPlayer);
 
         // 3 bots
         for (let i = 0; i < 3; i++) {
-            const bot = new Bot(this, redSpawnX, centerY + (i + 1) * 60 - 90, 'red');
+            const pos = redSpawnPositions[i + 1];
+            const bot = new Bot(this, pos.x, pos.y, 'red', this.hitEffects);
             bot.setPatrolPoints([
-                { x: redSpawnX, y: centerY - 100 },
-                { x: redSpawnX + 200, y: centerY + 100 },
-                { x: redSpawnX, y: centerY + 300 }
+                { x: 150, y: 400 },
+                { x: 350, y: 600 },
+                { x: 150, y: 800 }
             ]);
             this.bots.push(bot);
             this.players.push(bot);
@@ -149,16 +156,18 @@ export default class GameScene extends Phaser.Scene {
 
         // Blue team: 1 human player + 3 bots
         // Human player (AI controlled for now - can be switched to local)
-        const blueHuman = new Player(this, blueSpawnX, centerY, 'blue');
+        const blueHumanPos = blueSpawnPositions[0];
+        const blueHuman = new Player(this, blueHumanPos.x, blueHumanPos.y, 'blue', this.hitEffects);
         this.players.push(blueHuman);
 
         // 3 bots
         for (let i = 0; i < 3; i++) {
-            const bot = new Bot(this, blueSpawnX, centerY + (i + 1) * 60 - 90, 'blue');
+            const pos = blueSpawnPositions[i + 1];
+            const bot = new Bot(this, pos.x, pos.y, 'blue', this.hitEffects);
             bot.setPatrolPoints([
-                { x: blueSpawnX, y: centerY - 100 },
-                { x: blueSpawnX - 200, y: centerY + 100 },
-                { x: blueSpawnX, y: centerY + 300 }
+                { x: 1450, y: 400 },
+                { x: 1250, y: 600 },
+                { x: 1450, y: 800 }
             ]);
             this.bots.push(bot);
             this.players.push(bot);
@@ -312,6 +321,7 @@ export default class GameScene extends Phaser.Scene {
         bullets.getChildren().forEach(bullet => {
             if (!bullet.active) return;
 
+            // Check collision with enemies
             enemies.forEach(enemy => {
                 const distance = Phaser.Math.Distance.Between(
                     bullet.x, bullet.y,
@@ -319,10 +329,25 @@ export default class GameScene extends Phaser.Scene {
                 );
 
                 if (distance < enemy.radius + 4) {
+                    // Create blood effect at impact point
+                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, bullet.x, bullet.y);
+                    this.hitEffects.createBloodEffect(bullet.x, bullet.y, Phaser.Math.RadToDeg(angle));
                     enemy.takeDamage(bullet.damage);
                     bullet.destroy();
+                    return;
                 }
             });
+
+            if (!bullet.active) return;
+
+            // Check bullet collision with map obstacles using GarageMap collision detection
+            const collision = this.garageMap.checkBulletCollision(bullet.x, bullet.y);
+            if (collision.hit && collision.type !== this.garageMap.COLLISION_TYPES.WINDOW) {
+                // Create spark effect at impact point
+                const angle = Phaser.Math.RadToDeg(Math.atan2(bullet.velocity.y, bullet.velocity.x));
+                this.hitEffects.createSparkEffect(bullet.x, bullet.y, angle);
+                bullet.destroy();
+            }
         });
     }
 }

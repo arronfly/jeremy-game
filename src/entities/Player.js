@@ -6,9 +6,10 @@ import { MEDICALS } from '../config/medicals.js';
 import { Grenade } from '../items/Grenade.js';
 import { Medkit, EnergyDrinkEffect } from '../items/Medkit.js';
 import { PLAYER_CONFIG } from '../config/controls.js';
+import { HitEffects } from '../effects/HitEffects.js';
 
 export default class Player extends Phaser.GameObjects.Container {
-    constructor(scene, x, y, team) {
+    constructor(scene, x, y, team, hitEffects = null) {
         super(scene, x, y);
 
         this.scene = scene;
@@ -22,6 +23,7 @@ export default class Player extends Phaser.GameObjects.Container {
         this.currentAnimation = 'idle';
         this.isShooting = false;
         this.isReloading = false;
+        this.hitEffects = hitEffects;
 
         // Weapon system
         this.weaponInventory = new WeaponInventory(scene);
@@ -187,9 +189,17 @@ export default class Player extends Phaser.GameObjects.Container {
         const angle = Phaser.Math.Angle.Between(this.x, this.y, targetX, targetY);
         const weaponConfig = weapon.config;
 
+        // Muzzle flash effect
+        const muzzleX = this.x + Math.cos(angle) * 24;
+        const muzzleY = this.y + Math.sin(angle) * 24;
+        if (this.hitEffects) {
+            this.hitEffects.createMuzzleFlashEffect(muzzleX, muzzleY, Phaser.Math.RadToDeg(angle));
+            this.hitEffects.createShellCasingEffect(this.x, this.y, Phaser.Math.RadToDeg(angle));
+        }
+
         this.bulletManager.fireBullet(
-            this.x + Math.cos(angle) * 24,
-            this.y + Math.sin(angle) * 24,
+            muzzleX,
+            muzzleY,
             angle,
             weaponConfig,
             false
@@ -267,6 +277,11 @@ export default class Player extends Phaser.GameObjects.Container {
 
         // Show damage number
         this.showDamageNumber(amount);
+
+        // Trigger blood effect if hit effects is available
+        if (this.hitEffects) {
+            this.hitEffects.createBloodEffect(this.x, this.y, Math.random() * 360);
+        }
 
         if (this.health <= 0) {
             this.die();

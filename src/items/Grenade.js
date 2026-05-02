@@ -1,4 +1,5 @@
 import { GRENADES } from '../config/grenades.js';
+import { HitEffects } from '../effects/HitEffects.js';
 
 export class Grenade {
     constructor(scene, type, owner) {
@@ -89,6 +90,13 @@ export class Grenade {
         const duration = this.config.duration;
         const radius = this.config.radius;
 
+        // Use HitEffects for better smoke rendering if available
+        if (this.scene.hitEffects) {
+            this.scene.hitEffects.createSmokeEffect(this.x, this.y, radius, duration);
+            return;
+        }
+
+        // Fallback: original smoke implementation
         // Create smoke particles
         const smokeGraphics = this.scene.add.graphics();
         smokeGraphics.setDepth(3);
