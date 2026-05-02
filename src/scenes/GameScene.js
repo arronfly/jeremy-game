@@ -79,6 +79,14 @@ export default class GameScene extends Phaser.Scene {
             energy: Phaser.Input.Keyboard.KeyCodes.NINE
         });
 
+        // Mouse wheel for grenade switching
+        this.input.on('wheel', (pointer, game, deltaX, deltaY) => {
+            const humanPlayer = this.players.find(p => p.team === 'red' && !p.isBot);
+            if (humanPlayer && humanPlayer.isAlive) {
+                humanPlayer.switchGrenade();
+            }
+        });
+
         // Mouse
         this.pointer = this.input.activePointer;
     }
@@ -91,6 +99,26 @@ export default class GameScene extends Phaser.Scene {
                 const localPlayer = this.players.find(p => p.team === 'red' && !p.isBot);
                 if (localPlayer && localPlayer.isAlive) {
                     localPlayer.shoot(pointer.x, pointer.y);
+                }
+            }
+
+            // Right click to throw grenade (hold for distance)
+            if (pointer.rightButtonDown()) {
+                const localPlayer = this.players.find(p => p.team === 'red' && !p.isBot);
+                if (localPlayer && localPlayer.isAlive) {
+                    if (!localPlayer.isThrowing) {
+                        localPlayer.startGrenadeThrow();
+                    }
+                }
+            }
+        });
+
+        // Right click release to throw
+        this.input.on('pointerup', (pointer) => {
+            if (pointer.rightButtonReleased()) {
+                const localPlayer = this.players.find(p => p.team === 'red' && !p.isBot);
+                if (localPlayer && localPlayer.isThrowing) {
+                    localPlayer.releaseGrenade(pointer.x, pointer.y);
                 }
             }
         });
@@ -139,6 +167,10 @@ export default class GameScene extends Phaser.Scene {
 
     getEnemies(team) {
         return this.players.filter(p => p.team !== team && p.isAlive);
+    }
+
+    getEnemiesForTeam(team) {
+        return this.getEnemies(team);
     }
 
     createHUD() {
@@ -195,9 +227,16 @@ export default class GameScene extends Phaser.Scene {
         this.handleBulletCollisions();
 
         // Update all players
+        const humanPlayer = this.players.find(p => p.team === 'red' && !p.isBot);
+
         this.players.forEach(player => {
             if (player.update) {
                 player.update(this.pointer);
+            }
+
+            // Update grenades for human player
+            if (player === humanPlayer && player.updateGrenades) {
+                player.updateGrenades(this.game.loop.delta);
             }
         });
     }
@@ -237,6 +276,22 @@ export default class GameScene extends Phaser.Scene {
         }
         if (Phaser.Input.Keyboard.JustDown(this.wasd.weapon4)) {
             humanPlayer.switchWeapon(4);
+        }
+
+        // Grenade switch (G key)
+        if (Phaser.Input.Keyboard.JustDown(this.wasd.grenade)) {
+            humanPlayer.switchGrenade();
+        }
+
+        // Medical items (7, 8, 9 keys)
+        if (Phaser.Input.Keyboard.JustDown(this.wasd.medkit)) {
+            humanPlayer.useMedkit('firstAidKit');
+        }
+        if (Phaser.Input.Keyboard.JustDown(this.wasd.bandage)) {
+            humanPlayer.useMedkit('bandage');
+        }
+        if (Phaser.Input.Keyboard.JustDown(this.wasd.energy)) {
+            humanPlayer.useMedkit('energyDrink');
         }
 
         // Keep player in bounds

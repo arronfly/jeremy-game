@@ -1,6 +1,6 @@
 import { GRENADES } from '../config/grenades.js';
 
-export default class Grenade {
+export class Grenade {
     constructor(scene, type, owner) {
         this.scene = scene;
         this.type = type;

@@ -321,10 +321,159 @@ export default class Player extends Phaser.GameObjects.Container {
 
         // Update bullet manager trails
         this.bulletManager.update();
+
+        // Update medkits
+        for (const medkit of Object.values(this.medkits)) {
+            medkit.update();
+        }
+
+        // Update energy drink effect
+        if (this.energyDrinkEffect) {
+            this.energyDrinkEffect.update();
+            if (!this.energyDrinkEffect.isActive) {
+                this.energyDrinkEffect = null;
+            }
+        }
+
+        // Check blind effect end
+        if (this.isBlinded && this.scene.time.now >= this.blindEndTime) {
+            this.isBlinded = false;
+        }
+    }
+
+    // ============= GRENADE SYSTEM =============
+    getCurrentGrenadeType() {
+        return this.grenadeTypes[this.currentGrenadeIndex];
+    }
+
+    getCurrentGrenade() {
+        return GRENADES[this.getCurrentGrenadeType()];
+    }
+
+    switchGrenade() {
+        this.currentGrenadeIndex = (this.currentGrenadeIndex + 1) % this.grenadeTypes.length;
+        const grenadeType = this.getCurrentGrenadeType();
+        this.scene.events.emit('grenadeSwitched', grenadeType, GRENADES[grenadeType]);
+        return grenadeType;
+    }
+
+    canThrowGrenade() {
+        return this.scene.time.now >= this.grenadeCooldownEnd && !this.isThrowing;
+    }
+
+    startGrenadeThrow() {
+        if (!this.canThrowGrenade()) return false;
+        this.isThrowing = true;
+        this.throwHoldStart = this.scene.time.now;
+        return true;
+    }
+
+    releaseGrenade(targetX, targetY) {
+        if (!this.isThrowing) return null;
+
+        const holdTime = this.scene.time.now - this.throwHoldStart;
+        const grenadeType = this.getCurrentGrenadeType();
+        const angle = Phaser.Math.Angle.Between(this.x, this.y, targetX, targetY);
+
+        // Create and throw grenade
+        const grenade = new Grenade(this.scene, grenadeType, this);
+        grenade.startThrow(angle, holdTime);
+        this.grenades.push(grenade);
+
+        // Set cooldown
+        this.grenadeCooldownEnd = this.scene.time.now + GRENADES[grenadeType].cooldown;
+
+        this.isThrowing = false;
+        this.scene.events.emit('grenadeThrown', grenadeType);
+
+        return grenade;
+    }
+
+    cancelGrenadeThrow() {
+        this.isThrowing = false;
+    }
+
+    updateGrenades(delta) {
+        for (let i = this.grenades.length - 1; i >= 0; i--) {
+            const grenade = this.grenades[i];
+            grenade.update(delta);
+
+            // Remove inactive grenades
+            if (!grenade.isActive) {
+                this.grenades.splice(i, 1);
+            }
+        }
+    }
+
+    // ============= MEDKIT SYSTEM =============
+    useMedkit(type) {
+        if (!this.medkits[type]) return false;
+        return this.medkits[type].startUse();
+    }
+
+    cancelMedkitUse(type) {
+        if (this.medkits[type]) {
+            this.medkits[type].cancelUse();
+        }
+    }
+
+    playUseAnimation(type) {
+        this.playAnimation('idle');
+    }
+
+    updateUseProgress(type, progress) {
+        // Progress bar implementation
+    }
+
+    clearUseProgress(type) {
+        // Clear progress bar
+    }
+
+    applyBlind(duration) {
+        this.isBlinded = true;
+        this.blindEndTime = this.scene.time.now + duration;
+    }
+
+    // ============= GETTERS FOR UI =============
+    getGrenadeInfo() {
+        return {
+            currentType: this.getCurrentGrenadeType(),
+            config: this.getCurrentGrenade(),
+            cooldownEnd: this.grenadeCooldownEnd,
+            canThrow: this.canThrowGrenade()
+        };
+    }
+
+    getMedkitInfo() {
+        const info = {};
+        for (const [type, medkit] of Object.entries(this.medkits)) {
+            info[type] = {
+                config: medkit.config,
+                cooldownEnd: medkit.cooldownEndTime,
+                isUsing: medkit.isUsing,
+                canUse: medkit.canUse()
+            };
+        }
+        return info;
     }
 
     destroy() {
         this.bulletManager.destroyAll();
+
+        // Destroy all grenades
+        for (const grenade of this.grenades) {
+            grenade.destroy();
+        }
+
+        // Destroy all medkits
+        for (const medkit of Object.values(this.medkits)) {
+            medkit.destroy();
+        }
+
+        if (this.energyDrinkEffect) {
+            this.energyDrinkEffect.destroy();
+        }
+
         super.destroy();
     }
 }
