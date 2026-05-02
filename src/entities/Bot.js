@@ -133,8 +133,8 @@ export default class Bot extends Player {
         const dist = Phaser.Math.Distance.Between(this.x, this.y, this.target.x, this.target.y);
         const angle = Phaser.Math.Angle.Between(this.x, this.y, this.target.x, this.target.y);
 
-        // Aim at target
-        this.setRotation(angle);
+        // Aim at target using body container
+        this.bodyContainer.setRotation(angle);
 
         // Move to optimal distance if too far
         if (dist > 200) {
@@ -239,10 +239,10 @@ export default class Bot extends Player {
         // Bot doesn't use pointer for aiming, AI controls rotation
         if (!this.isAlive) return;
 
-        // If attacking, face the target
+        // If attacking, face the target using body container
         if (this.target && this.state === 'attack') {
             const angle = Phaser.Math.Angle.Between(this.x, this.y, this.target.x, this.target.y);
-            this.setRotation(angle);
+            this.bodyContainer.setRotation(angle);
         }
 
         // Update bullet manager trails
