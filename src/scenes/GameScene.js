@@ -4,6 +4,8 @@ import { TEAM_CONFIG, RULES } from '../config/game.js';
 import { CONTROLS } from '../config/controls.js';
 import { HitEffects } from '../effects/HitEffects.js';
 import { GarageMap } from '../maps/GarageMap.js';
+import { RoundManager, RoundState } from '../managers/RoundManager.js';
+import { HUDManager } from '../ui/HUDManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -14,6 +16,10 @@ export default class GameScene extends Phaser.Scene {
         this.cursors = null;
         this.wasd = null;
         this.pointer = null;
+
+        // Round and HUD managers
+        this.roundManager = null;
+        this.hudManager = null;
     }
 
     create() {
@@ -32,14 +38,100 @@ export default class GameScene extends Phaser.Scene {
         // Setup mouse input
         this.setupMouseInput();
 
-        // Display team info
-        this.createHUD();
-
         // Initialize particle effects
         this.hitEffects = new HitEffects(this);
 
         // Store collision objects reference for bullet collision detection
         this.collisionObjects = this.garageMap.getCollisionObjects();
+
+        // Initialize round manager
+        this.initializeRoundManager();
+
+        // Initialize HUD manager
+        this.initializeHUD();
+
+        // Start the first round
+        this.roundManager.startRound();
+    }
+
+    initializeRoundManager() {
+        this.roundManager = new RoundManager(this);
+
+        // Set up event callbacks
+        this.roundManager.onRoundStart = (round, isSuddenDeath) => {
+            this.onRoundStart(round, isSuddenDeath);
+        };
+
+        this.roundManager.onRoundEnd = (winner, scores) => {
+            this.onRoundEnd(winner, scores);
+        };
+
+        this.roundManager.onScoreUpdate = (redScore, blueScore) => {
+            this.hudManager.updateScore(redScore, blueScore);
+        };
+
+        this.roundManager.onSuddenDeath = () => {
+            this.hudManager.showSuddenDeath();
+        };
+
+        this.roundManager.onGameOver = (winner, scores) => {
+            this.onGameOver(winner, scores);
+        };
+    }
+
+    initializeHUD() {
+        this.hudManager = new HUDManager(this);
+        this.hudManager.setLocalPlayer(this.players.find(p => p.team === 'red' && !p.isBot));
+        this.hudManager.updateRound(1);
+    }
+
+    onRoundStart(round, isSuddenDeath) {
+        // Respawn all players
+        this.respawnAllPlayers();
+        this.hudManager.updateRound(round);
+    }
+
+    onRoundEnd(winner, scores) {
+        if (winner) {
+            this.hudManager.showRoundEnd(winner, scores);
+        } else {
+            this.hudManager.showRoundEnd(null, scores); // Draw
+        }
+    }
+
+    onGameOver(winner, scores) {
+        this.hudManager.showGameOver(winner, scores);
+
+        // Listen for restart
+        this.input.keyboard.once('keydown-R', () => {
+            this.scene.restart();
+        });
+    }
+
+    respawnAllPlayers() {
+        const redSpawnPositions = this.garageMap.getSpawnPositions('red');
+        const blueSpawnPositions = this.garageMap.getSpawnPositions('blue');
+
+        // Respawn red team
+        this.players.filter(p => p.team === 'red').forEach((player, index) => {
+            const pos = redSpawnPositions[index] || redSpawnPositions[0];
+            player.respawn(pos.x, pos.y);
+        });
+
+        // Respawn blue team
+        this.players.filter(p => p.team === 'blue').forEach((player, index) => {
+            const pos = blueSpawnPositions[index] || blueSpawnPositions[0];
+            player.respawn(pos.x, pos.y);
+        });
+    }
+
+    handlePlayerDeath(player, killer) {
+        // Emit event for round manager
+        this.events.emit('playerDied', player, killer);
+
+        // Add to kill feed
+        this.roundManager.addToKillFeed(player, killer);
+        this.hudManager.updateKillFeed(this.roundManager.getKillFeed());
     }
 
     createMapElements() {
@@ -182,52 +274,6 @@ export default class GameScene extends Phaser.Scene {
         return this.getEnemies(team);
     }
 
-    createHUD() {
-        const { width, height } = this.sys.game.config;
-
-        // Red team indicator
-        this.add.rectangle(100, 30, 150, 40, 0xE74C3C, 0.8);
-        this.add.text(100, 30, `${TEAM_CONFIG.red.name}: 4`, {
-            fontSize: '20px',
-            color: '#fff'
-        }).setOrigin(0.5);
-
-        // Blue team indicator
-        this.add.rectangle(width - 100, 30, 150, 40, 0x3498DB, 0.8);
-        this.add.text(width - 100, 30, `${TEAM_CONFIG.blue.name}: 0`, {
-            fontSize: '20px',
-            color: '#fff'
-        }).setOrigin(0.5);
-
-        // Round indicator
-        this.add.text(width / 2, 30, '第1回合/7', {
-            fontSize: '24px',
-            color: '#fff'
-        }).setOrigin(0.5);
-
-        // Player health bars
-        this.createHealthBar(this.players[0], 50, height - 100);
-    }
-
-    createHealthBar(player, x, y) {
-        const barWidth = 200;
-        const barHeight = 20;
-
-        // Background
-        const bg = this.add.rectangle(x, y, barWidth, barHeight, 0x333333);
-
-        // Health fill
-        const healthFill = this.add.rectangle(x - barWidth/2 + barWidth/2, y, barWidth, barHeight, 0x27AE60);
-
-        // Label
-        this.add.text(x, y - 15, `${player.teamName} - 100/100`, {
-            fontSize: '16px',
-            color: '#fff'
-        }).setOrigin(0.5);
-
-        return { bg, healthFill };
-    }
-
     update() {
         // Handle player movement
         this.handlePlayerMovement();
@@ -243,11 +289,22 @@ export default class GameScene extends Phaser.Scene {
                 player.update(this.pointer);
             }
 
+            // Check for player death
+            if (!player.wasAlive && player.isAlive === false) {
+                player.wasAlive = false;
+                // Player died - handled in takeDamage
+            }
+
             // Update grenades for human player
             if (player === humanPlayer && player.updateGrenades) {
                 player.updateGrenades(this.game.loop.delta);
             }
         });
+
+        // Update HUD
+        if (this.hudManager) {
+            this.hudManager.update();
+        }
     }
 
     handlePlayerMovement() {
@@ -329,11 +386,19 @@ export default class GameScene extends Phaser.Scene {
                 );
 
                 if (distance < enemy.radius + 4) {
+                    // Store previous health to detect kill
+                    const previousHealth = enemy.health;
+
                     // Create blood effect at impact point
                     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, bullet.x, bullet.y);
                     this.hitEffects.createBloodEffect(bullet.x, bullet.y, Phaser.Math.RadToDeg(angle));
                     enemy.takeDamage(bullet.damage);
                     bullet.destroy();
+
+                    // Check if enemy died
+                    if (previousHealth > 0 && enemy.health <= 0) {
+                        this.handlePlayerDeath(enemy, humanPlayer);
+                    }
                     return;
                 }
             });
@@ -349,5 +414,42 @@ export default class GameScene extends Phaser.Scene {
                 bullet.destroy();
             }
         });
+
+        // Also handle blue team bullets hitting red team (for bot vs player)
+        this.handleBotBullets();
     }
-}
+
+    handleBotBullets() {
+        // Blue team bullets hitting red team
+        const blueHuman = this.players.find(p => p.team === 'blue' && !p.isBot);
+        if (!blueHuman) return;
+
+        const bullets = blueHuman.getBullets();
+        if (!bullets) return;
+
+        const redEnemies = this.players.filter(p => p.team === 'red' && p.isAlive);
+
+        bullets.getChildren().forEach(bullet => {
+            if (!bullet.active) return;
+
+            redEnemies.forEach(enemy => {
+                const distance = Phaser.Math.Distance.Between(
+                    bullet.x, bullet.y,
+                    enemy.x, enemy.y
+                );
+
+                if (distance < enemy.radius + 4) {
+                    const previousHealth = enemy.health;
+
+                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, bullet.x, bullet.y);
+                    this.hitEffects.createBloodEffect(bullet.x, bullet.y, Phaser.Math.RadToDeg(angle));
+                    enemy.takeDamage(bullet.damage);
+                    bullet.destroy();
+
+                    if (previousHealth > 0 && enemy.health <= 0) {
+                        this.handlePlayerDeath(enemy, blueHuman);
+                    }
+                }
+            });
+        });
+    }}
