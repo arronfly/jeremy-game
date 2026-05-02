@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试 Phaser</title>
+    <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js"></script>
+</head>
+<body>
+    <div id="game-container"></div>
+    <script>
+        console.log('Phaser loaded:', typeof Phaser);
+        console.log('Phaser version:', Phaser.VERSION);
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game-container',
+            backgroundColor: '#2d2d44',
+            scene: {
+                preload: function() {
+                    console.log('Preload called');
+                },
+                create: function() {
+                    console.log('Create called - Phaser is working!');
+                    this.add.text(400, 300, 'Phaser 工作正常!', {
+                        fontSize: '32px',
+                        color: '#ffffff'
+                    }).setOrigin(0.5);
+                }
+            }
+        };
+
+        const game = new Phaser.Game(config);
+        window.game = game;
+    </script>
+</body>
+</html>

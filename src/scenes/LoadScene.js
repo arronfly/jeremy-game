@@ -26,12 +26,30 @@ export default class LoadScene extends Phaser.Scene {
         });
 
         this.load.on('complete', () => {
-            this.scene.start('GameScene');
+            // Show "loading complete" briefly before starting
+            this.add.text(width/2, height/2 + 60, '加载完成！', {
+                fontSize: '24px',
+                color: '#27AE60'
+            }).setOrigin(0.5);
+
+            // Delay 1.5 seconds so user can see the loading screen
+            this.time.delayedCall(1500, () => {
+                this.scene.start('GameScene');
+            });
         });
 
         // Start loading
         this.generateTextures();
         this.load.start();
+
+        // Even though nothing is in the queue, fire progress to show loading bar
+        this.time.delayedCall(100, () => {
+            progress.clear();
+            progress.fillStyle(0x27AE60, 1);
+            progress.fillRect(barX, barY, barWidth, barHeight);
+            progress.lineStyle(2, 0xffffff);
+            progress.strokeRect(barX, barY, barWidth, barHeight);
+        });
     }
 
     generateTextures() {

@@ -7,6 +7,6 @@
     "test": "echo \"No tests configured\""
   },
   "dependencies": {
-    "phaser": "^3.60.0"
+    "phaser": "^3.90.0"
   }
 }
