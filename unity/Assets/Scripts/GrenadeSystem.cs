@@ -166,7 +166,7 @@ public class GrenadeSystem : MonoBehaviour
         foreach (Collider2D hit in hits)
         {
             PlayerHealth health = hit.GetComponent<PlayerHealth>();
-            if (health != null && health.CompareTag("Enemy"))
+            if (health != null && !hit.CompareTag(gameObject.tag))
             {
                 // 致盲效果（这里简化处理）
                 Debug.Log(hit.name + " 被致盲!");
@@ -183,7 +183,7 @@ public class GrenadeSystem : MonoBehaviour
         foreach (Collider2D hit in hits)
         {
             PlayerHealth health = hit.GetComponent<PlayerHealth>();
-            if (health != null && health.CompareTag("Enemy"))
+            if (health != null && !hit.CompareTag(gameObject.tag))
             {
                 health.TakeDamage(damage);
             }

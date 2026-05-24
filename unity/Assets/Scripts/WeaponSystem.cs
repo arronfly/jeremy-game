@@ -14,6 +14,7 @@ public class WeaponData
     public float spread;          // 子弹扩散角度
     public int pellets;           // 散弹子弹数
     public float reloadTime;      // 秒
+    public float bulletSpeed;     // 子弹速度
 }
 
 /// <summary>
@@ -24,10 +25,10 @@ public class WeaponSystem : MonoBehaviour
     [Header("武器数据")]
     public WeaponData[] weapons = new WeaponData[]
     {
-        new WeaponData() { weaponName = "突击步枪", damage = 25, fireRate = 0.2f, magazineSize = 30, maxReserveAmmo = 120, spread = 0.05f, pellets = 1, reloadTime = 1.5f },
-        new WeaponData() { weaponName = "狙击枪", damage = 80, fireRate = 1.5f, magazineSize = 5, maxReserveAmmo = 20, spread = 0f, pellets = 1, reloadTime = 2.5f },
-        new WeaponData() { weaponName = "冲锋枪", damage = 18, fireRate = 0.1f, magazineSize = 35, maxReserveAmmo = 140, spread = 0.1f, pellets = 1, reloadTime = 1.5f },
-        new WeaponData() { weaponName = "散弹枪", damage = 15, fireRate = 0.8f, magazineSize = 8, maxReserveAmmo = 32, spread = 0.3f, pellets = 8, reloadTime = 2f }
+        new WeaponData() { weaponName = "突击步枪", damage = 25, fireRate = 0.2f, magazineSize = 30, maxReserveAmmo = 120, spread = 0.05f, pellets = 1, reloadTime = 1.5f, bulletSpeed = 20f },
+        new WeaponData() { weaponName = "狙击枪", damage = 80, fireRate = 1.5f, magazineSize = 5, maxReserveAmmo = 20, spread = 0f, pellets = 1, reloadTime = 2.5f, bulletSpeed = 30f },
+        new WeaponData() { weaponName = "冲锋枪", damage = 18, fireRate = 0.1f, magazineSize = 35, maxReserveAmmo = 140, spread = 0.1f, pellets = 1, reloadTime = 1.5f, bulletSpeed = 15f },
+        new WeaponData() { weaponName = "散弹枪", damage = 15, fireRate = 0.8f, magazineSize = 8, maxReserveAmmo = 32, spread = 0.3f, pellets = 8, reloadTime = 2f, bulletSpeed = 18f }
     };
 
     [Header("引用")]
@@ -72,6 +73,7 @@ public class WeaponSystem : MonoBehaviour
 
         currentWeaponIndex = index;
         currentAmmo = weapons[index].magazineSize;
+        reserveAmmo = weapons[index].maxReserveAmmo;
         isReloading = false;
 
         Debug.Log("切换武器: " + weapons[index].weaponName);

@@ -30,14 +30,40 @@ public class BotAI : MonoBehaviour
             firePoint = transform;
         }
 
-        // 找到玩家对象
-        if (player == null)
+        // 找到最近的敌方目标
+        FindTarget();
+    }
+
+    void FindTarget()
+    {
+        if (player != null) return;
+
+        float minDist = Mathf.Infinity;
+        Transform closest = null;
+
+        GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+        GameObject[] bots = GameObject.FindGameObjectsWithTag("Bot");
+
+        System.Action<GameObject[]> checkTargets = (targets) =>
         {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
+            foreach (GameObject target in targets)
             {
-                player = playerObj.transform;
+                if (target == gameObject) continue;
+                float dist = Vector3.Distance(transform.position, target.transform.position);
+                if (dist < minDist)
+                {
+                    minDist = dist;
+                    closest = target.transform;
+                }
             }
+        };
+
+        checkTargets(players);
+        checkTargets(bots);
+
+        if (closest != null)
+        {
+            player = closest;
         }
     }
 

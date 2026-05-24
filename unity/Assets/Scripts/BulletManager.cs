@@ -2,133 +2,124 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// Manages bullet pooling and collision detection
+/// 子弹对象池管理器 - 优化子弹生成性能
 /// </summary>
 public class BulletManager : MonoBehaviour
 {
-    public static BulletManager Instance { get; private set; }
-
-    [Header("Bullet Settings")]
+    [Header("子弹预制体")]
     public GameObject bulletPrefab;
-    public int poolSize = 100;
 
-    [Header("Performance Settings")]
-    public float cleanupInterval = 5f;
-    public int maxActiveBullets = 500;
+    [Header("池设置")]
+    public int initialPoolSize = 20;
+    public int maxPoolSize = 50;
 
-    private Queue<GameObject> bulletPool;
-    private List<Bullet> activeBullets;
-    private float cleanupTimer;
-    private int lastActiveCount;
+    private Queue<Bullet> bulletPool = new Queue<Bullet>();
+    private List<Bullet> activeBullets = new List<Bullet>();
 
-    void Awake()
+    void Start()
     {
-        Instance = this;
         InitializePool();
-    }
-
-    void Update()
-    {
-        cleanupTimer += Time.deltaTime;
-        if (cleanupTimer >= cleanupInterval)
-        {
-            CleanupInactiveBullets();
-            cleanupTimer = 0f;
-        }
-
-        lastActiveCount = activeBullets.Count;
     }
 
     void InitializePool()
     {
-        bulletPool = new Queue<GameObject>();
-        activeBullets = new List<Bullet>(poolSize);
-
-        for (int i = 0; i < poolSize; i++)
+        if (bulletPrefab == null)
         {
-            GameObject bullet = Instantiate(bulletPrefab);
-            bullet.SetActive(false);
-            bulletPool.Enqueue(bullet);
+            Debug.LogError("BulletManager: bulletPrefab 未设置!");
+            return;
+        }
+
+        for (int i = 0; i < initialPoolSize; i++)
+        {
+            CreateNewBullet();
         }
     }
 
-    public GameObject SpawnBullet(Vector2 position, Vector2 velocity, int damage, string ownerTag)
+    Bullet CreateNewBullet()
     {
-        if (activeBullets.Count >= maxActiveBullets)
-        {
-            return null;
-        }
+        GameObject obj = Instantiate(bulletPrefab, Vector3.zero, Quaternion.identity);
+        obj.SetActive(false);
+        Bullet bullet = obj.GetComponent<Bullet>();
+        bulletPool.Enqueue(bullet);
+        return bullet;
+    }
 
-        GameObject bullet;
+    /// <summary>
+    /// 从池中获取子弹
+    /// </summary>
+    public Bullet GetBullet()
+    {
+        Bullet bullet;
 
         if (bulletPool.Count > 0)
         {
             bullet = bulletPool.Dequeue();
         }
+        else if (activeBullets.Count < maxPoolSize)
+        {
+            bullet = CreateNewBullet();
+            bulletPool.Dequeue(); // 刚创建的刚从池中取出
+        }
         else
         {
-            bullet = Instantiate(bulletPrefab);
+            Debug.LogWarning("BulletManager: 子弹池已满!");
+            return null;
         }
 
-        bullet.SetActive(true);
-        bullet.transform.position = position;
-
-        Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
-        if (rb != null)
-        {
-            rb.velocity = velocity;
-        }
-
-        Bullet bulletComp = bullet.GetComponent<Bullet>();
-        if (bulletComp != null)
-        {
-            bulletComp.Initialize(velocity, damage, ownerTag);
-        }
-
-        activeBullets.Add(bulletComp);
+        bullet.gameObject.SetActive(true);
+        activeBullets.Add(bullet);
         return bullet;
     }
 
+    /// <summary>
+    /// 回收子弹到池中
+    /// </summary>
     public void ReturnBullet(Bullet bullet)
     {
         if (bullet == null) return;
 
         bullet.gameObject.SetActive(false);
-        bulletPool.Enqueue(bullet.gameObject);
         activeBullets.Remove(bullet);
+        bulletPool.Enqueue(bullet);
     }
 
-    void CleanupInactiveBullets()
-    {
-        for (int i = activeBullets.Count - 1; i >= 0; i--)
-        {
-            if (i >= activeBullets.Count) break;
-
-            Bullet bullet = activeBullets[i];
-            if (bullet == null || !bullet.gameObject.activeInHierarchy)
-            {
-                activeBullets.RemoveAt(i);
-            }
-        }
-    }
-
-    public int GetActiveBulletCount()
+    /// <summary>
+    /// 获取当前活跃子弹数量
+    /// </summary>
+    public int GetActiveCount()
     {
         return activeBullets.Count;
     }
 
-    public int GetPooledBulletCount()
+    /// <summary>
+    /// 获取池中可用子弹数量
+    /// </summary>
+    public int GetAvailableCount()
     {
         return bulletPool.Count;
     }
 
-    void OnDestroy()
+    /// <summary>
+    /// 发射子弹
+    /// </summary>
+    public void FireBullet(Vector2 position, Vector2 velocity, int damage, string ownerTag)
     {
-        Instance = null;
+        Bullet bullet = GetBullet();
+        if (bullet != null)
+        {
+            bullet.Initialize(velocity, damage, ownerTag);
+            bullet.transform.position = position;
+        }
     }
 
-    void OnApplicationQuit()
+    /// <summary>
+    /// 清理所有活跃子弹
+    /// </summary>
+    public void ClearAllBullets()
     {
-        Instance = null;
+        for (int i = activeBullets.Count - 1; i >= 0; i--)
+        {
+            ReturnBullet(activeBullets[i]);
+        }
     }
 }

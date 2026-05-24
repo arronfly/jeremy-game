@@ -79,14 +79,35 @@ public class Bullet : MonoBehaviour
 
     void CreateHitEffect()
     {
-        // 创建击中粒子效果（可以用简单的几何图形代替）
-        GameObject effect = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        // 创建2D击中粒子效果
+        GameObject effect = new GameObject("HitEffect");
         effect.transform.position = transform.position;
-        effect.transform.localScale = Vector3.one * 0.2f;
-        effect.GetComponent<Renderer>().material.color = Color.red;
+        SpriteRenderer sr = effect.AddComponent<SpriteRenderer>();
+        sr.sprite = CreateCircleSprite(8);
+        sr.color = new Color(1f, 0.3f, 0.1f, 0.9f);
+        sr.sortingOrder = 10;
 
         // 0.2秒后销毁
         Destroy(effect, 0.2f);
+    }
+
+    Sprite CreateCircleSprite(int radius)
+    {
+        int size = radius * 2;
+        Texture2D tex = new Texture2D(size, size);
+        Color[] colors = new Color[size * size];
+        int center = radius;
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dist = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                colors[y * size + x] = dist <= radius ? Color.white : Color.clear;
+            }
+        }
+        tex.SetPixels(colors);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100);
     }
 
     public int GetDamage()

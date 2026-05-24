@@ -144,19 +144,19 @@ class GameScene extends Phaser.Scene {
         if (player.magAmmo !== undefined) player.magAmmo--;
         const angle = Phaser.Math.Angle.Between(player.x, player.y, targetX, targetY);
         player.bodyContainer.setRotation(angle);
-        this.fireBullet(player.x, player.y, angle, weapon);
+        this.fireBullet(player.x, player.y, angle, weapon, player.team);
     }
-    fireBullet(x, y, angle, weapon) {
+    fireBullet(x, y, angle, weapon, team) {
         const bulletCount = weapon.pellets || 1;
         for (let i = 0; i < bulletCount; i++) {
             const spread = (Math.random() - 0.5) * weapon.spread;
             const spreadAngle = angle + spread;
-            const bullet = this.add.circle(x + Math.cos(angle) * 24, y + Math.sin(angle) * 24, 4, 0xFFFF00);
-            bullet.setVelocity(Math.cos(spreadAngle) * 600, Math.sin(spreadAngle) * 600);
+            const bullet = this.add.circle(x + Math.cos(angle) * 24, y + Math.sin(angle) * 24, 5, 0xFFFF00);
+            bullet.setVelocity(Math.cos(spreadAngle) * 800, Math.sin(spreadAngle) * 800);
             bullet.damage = weapon.damage;
-            bullet.team = this.players.find(p => p.x === x && p.y === y)?.team;
+            bullet.ownerTeam = team;
             this.bullets.add(bullet);
-            this.time.delayedCall(3000, () => {
+            this.time.delayedCall(2000, () => {
                 if (!bullet.destroyed) bullet.destroy();
             });
         }
@@ -239,20 +239,20 @@ class GameScene extends Phaser.Scene {
             // Aim at enemy
             const angle = Phaser.Math.Angle.Between(bot.x, bot.y, nearestEnemy.x, nearestEnemy.y);
             bot.bodyContainer.setRotation(angle);
-            // Move towards enemy if too far, away if too close
-            if (nearestDist > 200) {
-                bot.x += Math.cos(angle) * bot.speed * 0.008;
-                bot.y += Math.sin(angle) * bot.speed * 0.008;
-            } else if (nearestDist < 100) {
-                bot.x -= Math.cos(angle) * bot.speed * 0.005;
-                bot.y -= Math.sin(angle) * bot.speed * 0.005;
+            // Move towards enemy
+            if (nearestDist > 150) {
+                bot.x += Math.cos(angle) * bot.speed * 0.016;
+                bot.y += Math.sin(angle) * bot.speed * 0.016;
+            } else if (nearestDist < 80) {
+                bot.x -= Math.cos(angle) * bot.speed * 0.012;
+                bot.y -= Math.sin(angle) * bot.speed * 0.012;
             }
             // Shoot at enemy
             const now = this.time.now;
-            if (now - this.lastBotShootTime[bot.uid] > 500) {
+            if (now - this.lastBotShootTime[bot.uid] > 300) {
                 this.lastBotShootTime[bot.uid] = now;
                 const weapon = bot.currentWeapon || WEAPONS.assaultRifle;
-                this.fireBullet(bot.x, bot.y, angle, weapon);
+                this.fireBullet(bot.x, bot.y, angle, weapon, bot.team);
             }
         } else {
             bot.aiState = 'wander';
@@ -281,31 +281,19 @@ class GameScene extends Phaser.Scene {
     }
     handleBullets() {
         this.bullets.getChildren().forEach(bullet => {
-            if (!bullet.active) return;
+            if (!bullet.active || bullet.destroyed) return;
+            // Check collision with all players
             this.players.forEach(player => {
-                if (!player.isAlive || player.isBot) return;
+                if (!player.isAlive) return;
                 const dist = Phaser.Math.Distance.Between(bullet.x, bullet.y, player.x, player.y);
-                if (dist < player.radius + 4) {
-                    player.health -= bullet.damage;
-                    this.showDamage(player, bullet.damage);
-                    if (player.health <= 0) {
-                        player.isAlive = false;
-                        player.setAlpha(0.3);
-                    }
-                    bullet.destroy();
-                }
-            });
-            // Bot vs bot bullets handled separately
-            this.bots.forEach(bot => {
-                if (!bot.isAlive) return;
-                const bulletTeam = bullet.team;
-                if (bulletTeam && bulletTeam !== bot.team) {
-                    const dist = Phaser.Math.Distance.Between(bullet.x, bullet.y, bot.x, bot.y);
-                    if (dist < bot.radius + 4) {
-                        bot.health -= bullet.damage;
-                        if (bot.health <= 0) {
-                            bot.isAlive = false;
-                            bot.setAlpha(0.3);
+                if (dist < player.radius + 5) {
+                    // Only damage enemies
+                    if (bullet.ownerTeam !== player.team) {
+                        player.health -= bullet.damage;
+                        this.showDamage(player, bullet.damage);
+                        if (player.health <= 0) {
+                            player.isAlive = false;
+                            player.setAlpha(0.3);
                         }
                         bullet.destroy();
                     }

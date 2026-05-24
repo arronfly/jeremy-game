@@ -1,1 +1,42 @@
+# Dependencies
 node_modules/
+
+# Unity generated
+Library/
+Logs/
+Temp/
+Obj/
+
+# Unity user settings
+UserSettings/
+unity/My project/Library/
+unity/My project/Logs/
+unity/My project/Temp/
+unity/My project/Obj/
+unity/My project/UserSettings/
+
+# Unity packages (auto-generated)
+Packages/
+unity/My project/Packages/
+
+# Unity project settings (keep our custom ones)
+unity/My project/ProjectSettings/
+
+# Build output
+Builds/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build artifacts
+*.csproj
+*.unityproj
+*.sln

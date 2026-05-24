@@ -90,23 +90,32 @@ public class BotAIAggressive : MonoBehaviour
 
     void FindTarget()
     {
-        // 找到所有玩家
+        // 找到所有玩家和Bot
         GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+        GameObject[] bots = GameObject.FindGameObjectsWithTag("Bot");
+
         float minDist = Mathf.Infinity;
         Transform closest = null;
 
-        foreach (GameObject player in players)
+        System.Action<GameObject[]> checkTargets = (targets) =>
         {
-            // 排除自己
-            if (player.gameObject == gameObject) continue;
-
-            float dist = Vector3.Distance(transform.position, player.transform.position);
-            if (dist < minDist)
+            foreach (GameObject target in targets)
             {
-                minDist = dist;
-                closest = player.transform;
+                if (target == gameObject) continue;
+                PlayerHealth health = target.GetComponent<PlayerHealth>();
+                if (health == null || !health.IsAlive()) continue;
+
+                float dist = Vector3.Distance(transform.position, target.transform.position);
+                if (dist < minDist)
+                {
+                    minDist = dist;
+                    closest = target.transform;
+                }
             }
-        }
+        };
+
+        checkTargets(players);
+        checkTargets(bots);
 
         targetPlayer = closest;
     }

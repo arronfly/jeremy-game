@@ -1,154 +1,181 @@
 using UnityEngine;
+using System.Collections.Generic;
 
+/// <summary>
+/// 输入管理器 - 集中处理所有玩家输入
+/// 支持输入缓冲，用于改进射击和投掷手感
+/// </summary>
 public class InputManager : MonoBehaviour
 {
-    public static InputManager Instance { get; private set; }
+    [Header("输入缓冲设置")]
+    public float shootBufferTime = 0.1f;
+    public float grenadeBufferTime = 0.2f;
 
-    // Movement
+    private struct InputBuffer
+    {
+        public float time;
+        public bool pressed;
+    }
+
+    private Dictionary<KeyCode, InputBuffer> shootBuffer = new Dictionary<KeyCode, InputBuffer>();
+    private Dictionary<KeyCode, InputBuffer> grenadeBuffer = new Dictionary<KeyCode, InputBuffer>();
+
+    [Header("移动输入")]
     public Vector2 moveInput { get; private set; }
     public bool isSprinting { get; private set; }
 
-    // Actions
-    public bool shoot { get; private set; }
-    public bool reload { get; private set; }
-    public bool switchWeapon1 { get; private set; }
-    public bool switchWeapon2 { get; private set; }
-    public bool switchWeapon3 { get; private set; }
-    public bool switchWeapon4 { get; private set; }
-    public bool throwGrenade { get; private set; }
-    public bool useMedkit7 { get; private set; }
-    public bool useMedkit8 { get; private set; }
-    public bool useMedkit9 { get; private set; }
+    [Header("瞄准输入")]
+    public Vector2 lookDirection { get; private set; }
 
-    // Mouse
-    public Vector3 mouseWorldPosition { get; private set; }
+    [Header("武器输入")]
+    public KeyCode[] weaponKeys = new KeyCode[] { KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4 };
+    public KeyCode reloadKey = KeyCode.R;
+    public KeyCode meleeKey = KeyCode.Space;
 
-    // Action buffering (in seconds)
-    private const float BUFFER_TIME = 0.15f;
-    private float _reloadBuffer;
-    private float _grenadeBuffer;
-    private float _switchWeaponBuffer;
+    [Header("投掷物输入")]
+    public KeyCode grenadeKey = KeyCode.G;
 
-    // Input smoothing
-    private Vector2 _smoothMoveInput;
-    private const float MOVE_SMOOTH_SPEED = 10f;
-
-    // Buffered action states (consumed once per press)
-    private bool _reloadBuffered;
-    private bool _grenadeBuffered;
-    private bool _switchWeaponBuffered;
-
-    void Awake()
-    {
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-    }
+    [Header("药品输入")]
+    public KeyCode[] medkitKeys = new KeyCode[] { KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9 };
 
     void Update()
     {
-        UpdateMovement();
-        UpdateActions();
-        UpdateBufferedActions();
-        UpdateMousePosition();
+        UpdateMoveInput();
+        UpdateLookInput();
+        UpdateShootBuffer();
+        UpdateGrenadeBuffer();
     }
 
-    private void UpdateMovement()
+    void UpdateMoveInput()
     {
-        Vector2 rawInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-        _smoothMoveInput = Vector2.Lerp(_smoothMoveInput, rawInput, Time.deltaTime * MOVE_SMOOTH_SPEED);
-        moveInput = _smoothMoveInput.normalized * rawInput.magnitude;
-        isSprinting = Input.GetKey(KeyCode.LeftShift);
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float vertical = Input.GetAxisRaw("Vertical");
+        moveInput = new Vector2(horizontal, vertical).normalized;
+
+        isSprinting = Input.GetKey(KeyCode.LeftShift) && moveInput.magnitude > 0;
     }
 
-    private void UpdateActions()
+    void UpdateLookInput()
     {
-        // Continuous actions
-        shoot = Input.GetMouseButton(0);
-
-        // Single-frame actions
-        reload = Input.GetKeyDown(KeyCode.R);
-        switchWeapon1 = Input.GetKeyDown(KeyCode.Alpha1);
-        switchWeapon2 = Input.GetKeyDown(KeyCode.Alpha2);
-        switchWeapon3 = Input.GetKeyDown(KeyCode.Alpha3);
-        switchWeapon4 = Input.GetKeyDown(KeyCode.Alpha4);
-        throwGrenade = Input.GetKeyDown(KeyCode.G);
-        useMedkit7 = Input.GetKeyDown(KeyCode.Alpha7);
-        useMedkit8 = Input.GetKeyDown(KeyCode.Alpha8);
-        useMedkit9 = Input.GetKeyDown(KeyCode.Alpha9);
+        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        lookDirection = (mousePos - transform.position).normalized;
     }
 
-    private void UpdateBufferedActions()
+    void UpdateShootBuffer()
     {
-        // Decay buffers over time
-        _reloadBuffer = Mathf.Max(0, _reloadBuffer - Time.deltaTime);
-        _grenadeBuffer = Mathf.Max(0, _grenadeBuffer - Time.deltaTime);
-        _switchWeaponBuffer = Mathf.Max(0, _switchWeaponBuffer - Time.deltaTime);
-
-        // Buffer single-frame actions
-        if (Input.GetKeyDown(KeyCode.R))
-            _reloadBuffer = BUFFER_TIME;
-        if (Input.GetKeyDown(KeyCode.G))
-            _grenadeBuffer = BUFFER_TIME;
-        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2) ||
-            Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Alpha4))
-            _switchWeaponBuffer = BUFFER_TIME;
-
-        // Consume buffers (only once per press)
-        _reloadBuffered = _reloadBuffer > 0 && !_reloadBuffered;
-        _grenadeBuffered = _grenadeBuffer > 0 && !_grenadeBuffered;
-        _switchWeaponBuffered = _switchWeaponBuffer > 0 && !_switchWeaponBuffered;
-    }
-
-    private void UpdateMousePosition()
-    {
-        mouseWorldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-    }
-
-    // Helper methods for buffered actions
-    public bool GetReloadBuffered()
-    {
-        if (_reloadBuffered)
+        // 射击缓冲 - 左键
+        bool leftMouse = Input.GetMouseButtonDown(0);
+        if (leftMouse)
         {
-            _reloadBuffered = false;
-            return true;
+            shootBuffer[KeyCode.Mouse0] = new InputBuffer { time = Time.time, pressed = true };
         }
-        return false;
-    }
 
-    public bool GetGrenadeBuffered()
-    {
-        if (_grenadeBuffered)
+        // 清理过期缓冲
+        List<KeyCode> keysToRemove = new List<KeyCode>();
+        foreach (var kvp in shootBuffer)
         {
-            _grenadeBuffered = false;
-            return true;
+            if (Time.time - kvp.Value.time > shootBufferTime)
+            {
+                keysToRemove.Add(kvp.Key);
+            }
         }
-        return false;
-    }
-
-    public bool GetSwitchWeaponBuffered()
-    {
-        if (_switchWeaponBuffered)
+        foreach (var key in keysToRemove)
         {
-            _switchWeaponBuffered = false;
-            return true;
+            shootBuffer.Remove(key);
         }
-        return false;
     }
 
-    // Check if buffer is active without consuming
-    public bool IsReloadBuffered() => _reloadBuffer > 0;
-    public bool IsGrenadeBuffered() => _grenadeBuffer > 0;
-    public bool IsSwitchWeaponBuffered() => _switchWeaponBuffer > 0;
-
-    // Input smoothing helper
-    public Vector2 GetSmoothMoveInput(float smoothSpeed)
+    void UpdateGrenadeBuffer()
     {
-        Vector2 rawInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-        _smoothMoveInput = Vector2.Lerp(_smoothMoveInput, rawInput, Time.deltaTime * smoothSpeed);
-        return _smoothMoveInput.normalized * rawInput.magnitude;
+        // 投掷物缓冲 - 右键
+        bool rightMouse = Input.GetMouseButtonDown(1);
+        if (rightMouse)
+        {
+            grenadeBuffer[KeyCode.Mouse1] = new InputBuffer { time = Time.time, pressed = true };
+        }
+
+        // 清理过期缓冲
+        List<KeyCode> keysToRemove = new List<KeyCode>();
+        foreach (var kvp in grenadeBuffer)
+        {
+            if (Time.time - kvp.Value.time > grenadeBufferTime)
+            {
+                keysToRemove.Add(kvp.Key);
+            }
+        }
+        foreach (var key in keysToRemove)
+        {
+            grenadeBuffer.Remove(key);
+        }
+    }
+
+    /// <summary>
+    /// 检测射击缓冲是否有效
+    /// </summary>
+    public bool IsShootBuffered()
+    {
+        return shootBuffer.ContainsKey(KeyCode.Mouse0);
+    }
+
+    /// <summary>
+    /// 检测投掷物缓冲是否有效
+    /// </summary>
+    public bool IsGrenadeBuffered()
+    {
+        return grenadeBuffer.ContainsKey(KeyCode.Mouse1);
+    }
+
+    /// <summary>
+    /// 获取当前按下的武器键 (1-4)
+    /// </summary>
+    public int GetWeaponSwitch()
+    {
+        for (int i = 0; i < weaponKeys.Length; i++)
+        {
+            if (Input.GetKeyDown(weaponKeys[i]))
+            {
+                return i + 1;
+            }
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// 获取当前按下的药品键 (7-9)
+    /// </summary>
+    public int GetMedkitUse()
+    {
+        for (int i = 0; i < medkitKeys.Length; i++)
+        {
+            if (Input.GetKeyDown(medkitKeys[i]))
+            {
+                return i + 1;
+            }
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// 是否按下换弹键
+    /// </summary>
+    public bool IsReloadPressed()
+    {
+        return Input.GetKeyDown(reloadKey);
+    }
+
+    /// <summary>
+    /// 是否按下近战键
+    /// </summary>
+    public bool IsMeleePressed()
+    {
+        return Input.GetKeyDown(meleeKey);
+    }
+
+    /// <summary>
+    /// 是否按下投掷键
+    /// </summary>
+    public bool IsGrenadePressed()
+    {
+        return Input.GetKeyDown(grenadeKey);
     }
 }

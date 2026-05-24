@@ -1,25 +1,34 @@
 using UnityEngine;
 
 /// <summary>
-/// Handles player visual representation - creates 3D-style character
-/// Head (circle), torso (ellipse), limbs (lines), shadow
+/// 玩家视觉组件 - 创建伪3D风格的2D角色
+/// 包含: 头部(圆)、躯干(矩形)、四肢(线段)、阴影
 /// </summary>
 public class PlayerVisual : MonoBehaviour
 {
-    [Header("Visual Settings")]
-    public Color teamColor = Color.red;
-    public float shadowOffset = 0.1f;
+    [Header("颜色设置")]
+    public Color bodyColor = Color.white;
+    public Color headColor = Color.white;
+    public Color teamColor = new Color(0.9f, 0.3f, 0.3f, 1f); // 红色队伍
 
-    private GameObject head;
-    private GameObject torso;
-    private GameObject leftArm;
-    private GameObject rightArm;
-    private GameObject leftLeg;
-    private GameObject rightLeg;
-    private GameObject weapon;
-    private GameObject shadow;
+    [Header("身体比例")]
+    public float headRadius = 0.15f;
+    public float torsoWidth = 0.15f;
+    public float torsoHeight = 0.3f;
+    public float limbLength = 0.2f;
 
-    private static readonly Color DefaultSkinColor = new Color(1f, 0.87f, 0.71f);
+    [Header("阴影")]
+    public Color shadowColor = new Color(0, 0, 0, 0.3f);
+    public float shadowRadius = 0.3f;
+
+    [Header("武器")]
+    public GameObject weaponModel;
+
+    private SpriteRenderer headRenderer;
+    private SpriteRenderer torsoRenderer;
+    private SpriteRenderer[] limbRenderers = new SpriteRenderer[4];
+    private SpriteRenderer shadowRenderer;
+    private Transform weaponMount;
 
     void Start()
     {
@@ -28,297 +37,158 @@ public class PlayerVisual : MonoBehaviour
 
     void CreateVisuals()
     {
-        // Create shadow
-        shadow = CreateCircle("Shadow", Color.black, 0.3f, new Vector2(0, -0.4f));
-        // Make shadow semi-transparent
-        SpriteRenderer shadowSR = shadow.GetComponent<SpriteRenderer>();
-        if (shadowSR != null)
-        {
-            Color shadowColor = shadowSR.color;
-            shadowColor.a = 0.3f;
-            shadowSR.color = shadowColor;
-        }
+        // 创建阴影
+        CreateShadow();
 
-        // Create torso (ellipse)
-        torso = CreateEllipse("Torso", teamColor, new Vector2(0, 0), 0.15f, 0.2f);
+        // 创建头部 (圆形)
+        CreateHead();
 
-        // Create head
-        head = CreateCircle("Head", DefaultSkinColor, 0.12f, new Vector2(0, 0.2f));
+        // 创建躯干 (矩形)
+        CreateTorso();
 
-        // Create arms
-        leftArm = CreateLine("LeftArm", teamColor, new Vector2(-0.2f, 0.05f), new Vector2(-0.35f, -0.15f));
-        rightArm = CreateLine("RightArm", teamColor, new Vector2(0.2f, 0.05f), new Vector2(0.35f, -0.15f));
+        // 创建四肢
+        CreateLimbs();
 
-        // Create legs
-        leftLeg = CreateLine("LeftLeg", teamColor, new Vector2(-0.1f, -0.2f), new Vector2(-0.15f, -0.45f));
-        rightLeg = CreateLine("RightLeg", teamColor, new Vector2(0.1f, -0.2f), new Vector2(0.15f, -0.45f));
-
-        // Create weapon
-        weapon = CreateLine("Weapon", Color.gray, new Vector2(0, 0), new Vector2(0.4f, 0));
-
-        // Set sorting order so player renders correctly
-        foreach (Transform child in transform)
-        {
-            SpriteRenderer sr = child.GetComponent<SpriteRenderer>();
-            if (sr != null)
-            {
-                sr.sortingOrder = 1;
-            }
-        }
+        // 创建武器挂载点
+        CreateWeaponMount();
     }
 
-    /// <summary>
-    /// Creates a circular sprite using Unity's Sprite.Create with generated texture
-    /// </summary>
-    GameObject CreateCircle(string name, Color color, float size, Vector2 offset)
+    void CreateShadow()
     {
-        GameObject obj = new GameObject(name);
-
-        // Generate circle texture programmatically
-        Texture2D texture = GenerateCircleTexture(Mathf.CeilToInt(size * 64), color);
-
-        Sprite sprite = Sprite.Create(
-            texture,
-            new Rect(0, 0, texture.width, texture.height),
+        GameObject shadow = new GameObject("Shadow");
+        shadow.transform.SetParent(transform);
+        shadow.transform.localPosition = new Vector3(0, -0.1f, 0);
+        shadowRenderer = shadow.AddComponent<SpriteRenderer>();
+        shadowRenderer.sprite = Sprite.Create(
+            CreateCircleTexture(Mathf.RoundToInt(shadowRadius * 100) * 2),
+            new Rect(0, 0, Mathf.RoundToInt(shadowRadius * 100) * 2, Mathf.RoundToInt(shadowRadius * 100) * 2),
             new Vector2(0.5f, 0.5f),
-            64f
+            100
         );
-
-        SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
-        sr.sprite = sprite;
-        sr.color = color;
-
-        obj.transform.parent = transform;
-        obj.transform.localPosition = offset;
-
-        // Set local scale to achieve desired size
-        float pixelsPerUnit = 64f;
-        obj.transform.localScale = new Vector3(size * 2, size * 2, 1f);
-
-        return obj;
+        shadowRenderer.color = shadowColor;
+        shadowRenderer.sortingOrder = -1;
     }
 
-    /// <summary>
-    /// Creates an ellipse (oval) sprite using generated texture
-    /// </summary>
-    GameObject CreateEllipse(string name, Color color, Vector2 center, float width, float height)
+    void CreateHead()
     {
-        GameObject obj = new GameObject(name);
-
-        // Generate ellipse texture programmatically
-        Texture2D texture = GenerateEllipseTexture(Mathf.CeilToInt(width * 64), Mathf.CeilToInt(height * 64), color);
-
-        Sprite sprite = Sprite.Create(
-            texture,
-            new Rect(0, 0, texture.width, texture.height),
+        GameObject head = new GameObject("Head");
+        head.transform.SetParent(transform);
+        head.transform.localPosition = new Vector3(0, 0.35f, 0);
+        headRenderer = head.AddComponent<SpriteRenderer>();
+        headRenderer.sprite = Sprite.Create(
+            CreateCircleTexture(Mathf.RoundToInt(headRadius * 100) * 2),
+            new Rect(0, 0, Mathf.RoundToInt(headRadius * 100) * 2, Mathf.RoundToInt(headRadius * 100) * 2),
             new Vector2(0.5f, 0.5f),
-            64f
+            100
         );
+        headRenderer.color = headColor;
+        headRenderer.sortingOrder = 2;
+    }
 
-        SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
-        sr.sprite = sprite;
-        sr.color = color;
+    void CreateTorso()
+    {
+        GameObject torso = new GameObject("Torso");
+        torso.transform.SetParent(transform);
+        torso.transform.localPosition = new Vector3(0, 0.1f, 0);
+        torsoRenderer = torso.AddComponent<SpriteRenderer>();
+        torsoRenderer.sprite = Sprite.Create(
+            CreateRectangleTexture(Mathf.RoundToInt(torsoWidth * 100), Mathf.RoundToInt(torsoHeight * 100)),
+            new Rect(0, 0, Mathf.RoundToInt(torsoWidth * 100), Mathf.RoundToInt(torsoHeight * 100)),
+            new Vector2(0.5f, 0.5f),
+            100
+        );
+        torsoRenderer.color = bodyColor;
+        torsoRenderer.sortingOrder = 1;
+    }
 
-        obj.transform.parent = transform;
-        obj.transform.localPosition = center;
+    void CreateLimbs()
+    {
+        string[] limbNames = { "LeftArm", "RightArm", "LeftLeg", "RightLeg" };
+        Vector2[] limbPositions = {
+            new Vector2(-0.12f, 0.05f),
+            new Vector2(0.12f, 0.05f),
+            new Vector2(-0.08f, -0.15f),
+            new Vector2(0.08f, -0.15f)
+        };
 
-        // Scale to desired dimensions
-        obj.transform.localScale = Vector3.one;
+        for (int i = 0; i < 4; i++)
+        {
+            GameObject limb = new GameObject(limbNames[i]);
+            limb.transform.SetParent(transform);
+            limb.transform.localPosition = limbPositions[i];
+            limb.transform.localRotation = Quaternion.Euler(0, 0, (i < 2) ? -20f : -10f);
 
-        return obj;
+            limbRenderers[i] = limb.AddComponent<SpriteRenderer>();
+            int size = Mathf.RoundToInt(limbLength * 100);
+            limbRenderers[i].sprite = Sprite.Create(
+                CreateRectangleTexture(4, size),
+                new Rect(0, 0, 4, size),
+                new Vector2(0.5f, 0),
+                100
+            );
+            limbRenderers[i].color = bodyColor;
+            limbRenderers[i].sortingOrder = 1;
+        }
+    }
+
+    void CreateWeaponMount()
+    {
+        weaponMount = new GameObject("WeaponMount").transform;
+        weaponMount.SetParent(transform);
+        weaponMount.localPosition = new Vector3(0.2f, 0.1f, 0);
     }
 
     /// <summary>
-    /// Creates a line using LineRenderer component
+    /// 设置队伍颜色
     /// </summary>
-    GameObject CreateLine(string name, Color color, Vector2 start, Vector2 end)
+    public void SetTeamColor(Color color)
     {
-        GameObject obj = new GameObject(name);
-
-        LineRenderer lr = obj.AddComponent<LineRenderer>();
-        lr.startColor = color;
-        lr.endColor = color;
-        lr.startWidth = 0.05f;
-        lr.endWidth = 0.05f;
-
-        // Create material for the line
-        Material lineMaterial = new Material(Shader.Find("Sprites/Default"));
-        lr.material = lineMaterial;
-
-        Vector3 start3D = new Vector3(start.x, start.y, 0);
-        Vector3 end3D = new Vector3(end.x, end.y, 0);
-        lr.SetPosition(0, start3D);
-        lr.SetPosition(1, end3D);
-
-        obj.transform.parent = transform;
-
-        return obj;
+        teamColor = color;
+        if (headRenderer != null) headRenderer.color = Color.Lerp(headColor, color, 0.3f);
+        if (torsoRenderer != null) torsoRenderer.color = Color.Lerp(bodyColor, color, 0.2f);
     }
 
     /// <summary>
-    /// Generates a circular texture with anti-aliased edges
+    /// 面向方向旋转 ( degrees)
     /// </summary>
-    Texture2D GenerateCircleTexture(int diameter, Color color)
+    public void FaceDirection(float angle)
     {
-        Texture2D texture = new Texture2D(diameter, diameter);
-        texture.filterMode = FilterMode.Bilinear;
-
-        Color[] pixels = new Color[diameter * diameter];
-        int radius = diameter / 2;
-        int centerX = radius;
-        int centerY = radius;
-
-        // Use squared distance for circle test
-        float radiusSq = (float)radius * radius;
-
-        for (int y = 0; y < diameter; y++)
-        {
-            for (int x = 0; x < diameter; x++)
-            {
-                int index = y * diameter + x;
-                float distSq = (x - centerX) * (x - centerX) + (y - centerY) * (y - centerY);
-
-                if (distSq <= radiusSq)
-                {
-                    // Anti-aliasing at edge
-                    float dist = Mathf.Sqrt(distSq);
-                    float t = (radius - dist) / radius;
-
-                    if (t > 0.8f)
-                    {
-                        // Soft edge anti-aliasing
-                        Color c = color;
-                        c.a = (t - 0.8f) / 0.2f;
-                        pixels[index] = c;
-                    }
-                    else
-                    {
-                        pixels[index] = color;
-                    }
-                }
-                else
-                {
-                    pixels[index] = Color.clear;
-                }
-            }
-        }
-
-        texture.SetPixels(pixels);
-        texture.Apply();
-
-        return texture;
+        transform.rotation = Quaternion.Euler(0, 0, angle);
     }
 
     /// <summary>
-    /// Generates an ellipse texture with anti-aliased edges
+    /// 创建圆形纹理
     /// </summary>
-    Texture2D GenerateEllipseTexture(int width, int height, Color color)
+    Texture2D CreateCircleTexture(int resolution)
     {
-        Texture2D texture = new Texture2D(width, height);
-        texture.filterMode = FilterMode.Bilinear;
+        Texture2D tex = new Texture2D(resolution, resolution);
+        Color[] colors = new Color[resolution * resolution];
+        int center = resolution / 2;
+        float radius = center;
 
-        Color[] pixels = new Color[width * height];
-        int centerX = width / 2;
-        int centerY = height / 2;
-        float radiusX = width / 2f;
-        float radiusY = height / 2f;
-
-        for (int y = 0; y < height; y++)
+        for (int y = 0; y < resolution; y++)
         {
-            for (int x = 0; x < width; x++)
+            for (int x = 0; x < resolution; x++)
             {
-                int index = y * width + x;
-
-                // Normalized distance from center
-                float dx = (x - centerX) / radiusX;
-                float dy = (y - centerY) / radiusY;
-                float distSq = dx * dx + dy * dy;
-
-                if (distSq <= 1f)
-                {
-                    // Anti-aliasing at edge
-                    float dist = Mathf.Sqrt(distSq);
-
-                    if (dist > 0.85f)
-                    {
-                        // Soft edge anti-aliasing
-                        Color c = color;
-                        c.a = 1f - (dist - 0.85f) / 0.15f;
-                        pixels[index] = c;
-                    }
-                    else
-                    {
-                        pixels[index] = color;
-                    }
-                }
-                else
-                {
-                    pixels[index] = Color.clear;
-                }
+                float dist = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                colors[y * resolution + x] = (dist <= radius) ? Color.white : Color.clear;
             }
         }
-
-        texture.SetPixels(pixels);
-        texture.Apply();
-
-        return texture;
+        tex.SetPixels(colors);
+        tex.Apply();
+        return tex;
     }
 
     /// <summary>
-    /// Rotates the body by the specified angle in degrees
+    /// 创建矩形纹理
     /// </summary>
-    public void RotateBody(float angle)
+    Texture2D CreateRectangleTexture(int width, int height)
     {
-        transform.localRotation = Quaternion.Euler(0, 0, angle);
-    }
-
-    /// <summary>
-    /// Updates the team color for all body parts
-    /// </summary>
-    public void SetTeamColor(Color newColor)
-    {
-        teamColor = newColor;
-
-        if (torso != null)
-        {
-            SpriteRenderer torsoSR = torso.GetComponent<SpriteRenderer>();
-            if (torsoSR != null) torsoSR.color = teamColor;
-        }
-        if (leftArm != null)
-        {
-            LineRenderer leftArmLR = leftArm.GetComponent<LineRenderer>();
-            if (leftArmLR != null)
-            {
-                leftArmLR.startColor = teamColor;
-                leftArmLR.endColor = teamColor;
-            }
-        }
-        if (rightArm != null)
-        {
-            LineRenderer rightArmLR = rightArm.GetComponent<LineRenderer>();
-            if (rightArmLR != null)
-            {
-                rightArmLR.startColor = teamColor;
-                rightArmLR.endColor = teamColor;
-            }
-        }
-        if (leftLeg != null)
-        {
-            LineRenderer leftLegLR = leftLeg.GetComponent<LineRenderer>();
-            if (leftLegLR != null)
-            {
-                leftLegLR.startColor = teamColor;
-                leftLegLR.endColor = teamColor;
-            }
-        }
-        if (rightLeg != null)
-        {
-            LineRenderer rightLegLR = rightLeg.GetComponent<LineRenderer>();
-            if (rightLegLR != null)
-            {
-                rightLegLR.startColor = teamColor;
-                rightLegLR.endColor = teamColor;
-            }
-        }
+        Texture2D tex = new Texture2D(width, height);
+        Color[] colors = new Color[width * height];
+        for (int i = 0; i < colors.Length; i++) colors[i] = Color.white;
+        tex.SetPixels(colors);
+        tex.Apply();
+        return tex;
     }
 }

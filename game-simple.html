@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>歼灭团竞2 - 简化版</title>
+    <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #1a1a2e; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    </style>
+</head>
+<body>
+<div id="game-container"></div>
+<script>
+const GAME_WIDTH = 1200;
+const GAME_HEIGHT = 800;
+
+// Simple player sprite (just a colored circle)
+class Player {
+    constructor(scene, x, y, color, name) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.name = name;
+        this.health = 100;
+        this.alive = true;
+        this.speed = 200;
+        this.radius = 15;
+        this.lastShot = 0;
+        this.fireRate = 300;
+
+        // Create graphics object
+        this.graphics = scene.add.graphics();
+        this.updateGraphics();
+
+        // Health text
+        this.text = scene.add.text(x, y - 25, name + ': ' + this.health, {
+            fontSize: '12px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+    }
+
+    updateGraphics() {
+        this.graphics.clear();
+        if (!this.alive) {
+            this.graphics.fillStyle(0x666666, 0.5);
+        } else {
+            this.graphics.fillStyle(this.color, 1);
+        }
+        this.graphics.fillCircle(0, 0, this.radius);
+        // Direction indicator
+        this.graphics.fillStyle(0xffffff, 0.8);
+        this.graphics.fillCircle(10, 0, 5);
+    }
+
+    update(text) {
+        if (text) {
+            this.text.setPosition(this.x, this.y - 25);
+            this.text.setText(this.name + ': ' + Math.max(0, Math.floor(this.health)));
+        }
+    }
+
+    draw(graphics) {
+        graphics.fillStyle(this.alive ? this.color : 0x666666, this.alive ? 1 : 0.5);
+        graphics.fillCircle(this.x, this.y, this.radius);
+    }
+
+    takeDamage(amount) {
+        this.health -= amount;
+        if (this.health <= 0) {
+            this.health = 0;
+            this.alive = false;
+        }
+        this.updateGraphics();
+    }
+}
+
+class Bullet {
+    constructor(x, y, vx, vy, owner) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.owner = owner;
+        this.radius = 4;
+        this.life = 2000;
+        this.created = Date.now();
+    }
+
+    update(delta) {
+        this.x += this.vx * delta;
+        this.y += this.vy * delta;
+        return Date.now() - this.created < this.life;
+    }
+
+    draw(graphics) {
+        graphics.fillStyle(0xFFFF00, 1);
+        graphics.fillCircle(this.x, this.y, this.radius);
+    }
+}
+
+const config = {
+    type: Phaser.AUTO,
+    width: GAME_WIDTH,
+    height: GAME_HEIGHT,
+    backgroundColor: '#2d2d44',
+    parent: 'game-container',
+    scene: {
+        create: create,
+        update: update
+    }
+};
+
+let player, enemies, bullets, cursors, pointer;
+let redScore = 0, blueScore = 0;
+let statusText, scoreText;
+
+function create() {
+    // Create player
+    player = new Player(this, 150, 400, 0xE74C3C, '红队');
+
+    // Create enemies (3 blue bots)
+    enemies = [];
+    for (let i = 0; i < 4; i++) {
+        enemies.push(new Player(this, 1050, 300 + i * 80, 0x3498DB, '蓝队' + (i + 1)));
+    }
+
+    bullets = [];
+
+    // Setup controls
+    cursors = this.input.keyboard.createCursorKeys();
+    pointer = this.input.activePointer;
+
+    // UI
+    statusText = this.add.text(600, 30, '移动: 方向键 | 射击: 空格', {
+        fontSize: '20px',
+        color: '#ffffff'
+    }).setOrigin(0.5);
+
+    scoreText = this.add.text(600, 60, '红队: 0 | 蓝队: 0', {
+        fontSize: '24px',
+        color: '#ffff00'
+    }).setOrigin(0.5);
+
+    // Instructions
+    this.add.text(600, 750, '按空格键射击 | 消灭所有蓝队获胜', {
+        fontSize: '18px',
+        color: '#888888'
+    }).setOrigin(0.5);
+}
+
+function update() {
+    const delta = this.game.loop.delta / 1000;
+
+    // Player movement
+    if (player.alive) {
+        if (cursors.left.isDown) player.x -= player.speed * delta;
+        if (cursors.right.isDown) player.x += player.speed * delta;
+        if (cursors.up.isDown) player.y -= player.speed * delta;
+        if (cursors.down.isDown) player.y += player.speed * delta;
+
+        // Keep in bounds
+        player.x = Phaser.Math.Clamp(player.x, 20, GAME_WIDTH - 20);
+        player.y = Phaser.Math.Clamp(player.y, 20, GAME_HEIGHT - 20);
+
+        // Aim at mouse
+        // (visual only, no aiming mechanic needed)
+
+        // Shoot with spacebar
+        if (Phaser.Input.Keyboard.JustDown(cursors.space)) {
+            const now = Date.now();
+            if (now - player.lastShot > player.fireRate) {
+                player.lastShot = now;
+                // Shoot towards mouse
+                const angle = Phaser.Math.Angle.Between(player.x, player.y, pointer.x, pointer.y);
+                const speed = 400;
+                bullets.push(new Bullet(
+                    player.x, player.y,
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed,
+                    player
+                ));
+            }
+        }
+
+        player.update();
+    }
+
+    // Simple enemy AI - move and shoot
+    enemies.forEach(enemy => {
+        if (!enemy.alive) return;
+
+        // Move towards player (if far)
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 150) {
+            enemy.x += (dx / dist) * 100 * delta;
+            enemy.y += (dy / dist) * 100 * delta;
+        } else if (dist < 100) {
+            enemy.x -= (dx / dist) * 80 * delta;
+            enemy.y -= (dy / dist) * 80 * delta;
+        }
+
+        // Shoot at player
+        const now = Date.now();
+        if (now - enemy.lastShot > 800 + Math.random() * 400) {
+            enemy.lastShot = now;
+            const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, player.x, player.y);
+            const speed = 350;
+            bullets.push(new Bullet(
+                enemy.x, enemy.y,
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed,
+                enemy
+            ));
+        }
+
+        enemy.update();
+    });
+
+    // Update bullets
+    bullets = bullets.filter(bullet => {
+        const alive = bullet.update(delta);
+
+        // Check collision with player
+        if (player.alive && bullet.owner !== player) {
+            const dx = bullet.x - player.x;
+            const dy = bullet.y - player.y;
+            if (Math.sqrt(dx * dx + dy * dy) < player.radius + bullet.radius) {
+                player.takeDamage(15);
+                if (!player.alive) {
+                    blueScore++;
+                    updateScore();
+                }
+                return false;
+            }
+        }
+
+        // Check collision with enemies
+        enemies.forEach(enemy => {
+            if (bullet.owner === enemy) return;
+            if (!enemy.alive) return;
+            const dx = bullet.x - enemy.x;
+            const dy = bullet.y - enemy.y;
+            if (Math.sqrt(dx * dx + dy * dy) < enemy.radius + bullet.radius) {
+                enemy.takeDamage(15);
+                if (!enemy.alive) {
+                    redScore++;
+                    updateScore();
+                }
+                return false;
+            }
+        });
+
+        // Out of bounds
+        if (bullet.x < 0 || bullet.x > GAME_WIDTH || bullet.y < 0 || bullet.y > GAME_HEIGHT) {
+            return false;
+        }
+
+        return alive;
+    });
+
+    // Draw everything
+    const graphics = this.add.graphics();
+    graphics.clear();
+
+    // Draw bullets
+    bullets.forEach(bullet => bullet.draw(graphics));
+
+    // Draw player
+    player.draw(graphics);
+
+    // Draw enemies
+    enemies.forEach(enemy => enemy.draw(graphics));
+
+    // Check win condition
+    if (redScore >= 4) {
+        statusText.setText('红队胜利! 按R重新开始');
+        if (this.input.keyboard.addKey('R').isDown) {
+            this.scene.restart();
+        }
+    } else if (blueScore >= 4) {
+        statusText.setText('蓝队胜利! 按R重新开始');
+        if (this.input.keyboard.addKey('R').isDown) {
+            this.scene.restart();
+        }
+    }
+}
+
+function updateScore() {
+    scoreText.setText('红队: ' + redScore + ' | 蓝队: ' + blueScore);
+}
+
+const game = new Phaser.Game(config);
+</script>
+</body>
+</html>
